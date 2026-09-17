@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { listEvidence, saveEvidence, syncQueuedEvidence, supportsOfflineStorage } from './offlineQueue';
+import { getEvidence, listEvidence, saveEvidence, syncQueuedEvidence, supportsOfflineStorage } from './offlineQueue';
 import { DEMO_RECORDS } from './demoRecords';
 import { analyzeImage, checkVisionHealth } from './visionApi';
+import { computeRecordHash, sha256Hex, verifyImageBlob, verifyRecord } from './evidenceCrypto';
 
 const steps = ['Capture', 'Calibrate', 'Analyze', 'Evidence'];
 
@@ -19,6 +20,7 @@ export default function App() {
   const [analysisError, setAnalysisError] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [visionStatus, setVisionStatus] = useState('not checked');
+  const [integrityMessage, setIntegrityMessage] = useState('');
 
   const queued = useMemo(() => records.filter((record) => ['QUEUED', 'FAILED', 'SYNCING'].includes(record.sync_status)).length, [records]);
   const visibleRecords = useMemo(() => {
@@ -44,7 +46,7 @@ export default function App() {
 
   const runAnalysis = async () => {
     if (!file) { setAnalysisError('Choose a test image first.'); return; }
-    setAnalyzing(true); setAnalysisError(''); setAnalysis(null);
+    setAnalyzing(true); setAnalysisError(''); setAnalysis(null); setIntegrityMessage('');
     try {
       const result = await analyzeImage(file);
       setAnalysis(result);
@@ -57,14 +59,31 @@ export default function App() {
   };
 
   const createEvidence = async () => {
-    const record = {
+    const image_sha256 = file ? await sha256Hex(file) : null;
+    const baseRecord = {
       test_id: `TEST-DEMO-${Date.now().toString().slice(-6)}`,
       operator_id: 'DEMO-OPERATOR-001', timestamp: new Date().toISOString(), gps: null,
       test_type: 'COLORIMETRIC', result: analysis?.result || 'INCONCLUSIVE', confidence: analysis?.confidence ?? null,
-      image_sha256: null, record_hash: null, signature: null, sync_status: 'QUEUED', integrity_status: 'UNVERIFIED',
+      image_sha256, signature: null, sync_status: 'QUEUED', integrity_status: 'UNVERIFIED',
       analysis_status: analysis?.status || 'offline_demo', quality: analysis?.quality || null,
     };
-    await saveEvidence(record); await refreshQueue(); setStep(3);
+    const record = { ...baseRecord, record_hash: await computeRecordHash(baseRecord) };
+    await saveEvidence(record, file || null);
+    await refreshQueue(); setIntegrityMessage('Evidence sealed locally: image SHA-256 and deterministic record hash computed in-browser.'); setStep(3);
+  };
+
+  const verifyEvidence = async (record) => {
+    setIntegrityMessage('Verifying evidence…');
+    try {
+      const stored = await getEvidence(record.test_id);
+      const recordCheck = await verifyRecord(stored || record);
+      const imageCheck = stored?.image_blob && stored?.image_sha256 ? await verifyImageBlob(stored.image_blob, stored.image_sha256) : { valid: null, reason: 'image_not_stored' };
+      const valid = recordCheck.valid && (imageCheck.valid !== false);
+      setIntegrityMessage(valid ? `✓ ${record.test_id}: record and captured image hashes match.` : `⚠ ${record.test_id}: integrity check failed — possible tampering or missing evidence image.`);
+      if (valid && stored) {
+        setRecords((current) => current.map((item) => item.test_id === record.test_id ? { ...item, integrity_status: 'VERIFIED' } : item));
+      }
+    } catch (error) { setIntegrityMessage(`Verification error: ${error.message}`); }
   };
 
   const syncNow = async () => {
@@ -93,7 +112,7 @@ export default function App() {
 
         {step === 2 && <div className="panel result"><div className="result-badge">PRESUMPTIVE</div><h3>Analysis ready</h3><p className="muted">This is an AI/CV-assisted presumptive classification and is not laboratory confirmation.</p><div className="metrics"><div><strong>{analysis?.result || 'INCONCLUSIVE'}</strong><span>classification</span></div><div><strong>{analysis?.confidence != null ? `${Math.round(analysis.confidence * 100)}%` : '—'}</strong><span>confidence</span></div><div><strong>{analysis?.quality?.passed ? 'PASS' : '—'}</strong><span>quality gate</span></div></div><div className="notice">{analysis?.explanation || 'No validated field model is attached. The safe result remains INCONCLUSIVE.'}</div>{analysis?.roi && <p className="sync-note">Reaction ROI: {analysis.roi.join(', ')} · Features extracted: {Object.keys(analysis.features?.features || {}).length}</p>}<button className="primary" onClick={createEvidence}>Create evidence record →</button></div>}
 
-        {step === 3 && <div className="panel evidence"><div className="evidence-heading"><div><span className="eyebrow">COMMAND CENTER</span><h3>Evidence history</h3><p className="muted">Searchable local history for demo records and field-captured evidence.</p></div><button className="sync-button" onClick={syncNow} disabled={syncing || !storageReady}>{syncing ? 'Syncing…' : 'Sync queue'}</button></div><div className="history-toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search test ID, operator, result…" /><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="ALL">All records</option><option value="INCONCLUSIVE">Inconclusive</option><option value="PRESUMPTIVE_POSITIVE">Presumptive positive</option><option value="PRESUMPTIVE_NEGATIVE">Presumptive negative</option><option value="QUEUED">Queued</option><option value="SYNCED">Synced</option><option value="VERIFIED">Integrity verified</option></select></div><div className="history-list">{visibleRecords.length ? visibleRecords.map((record) => <article className="history-row" key={record.test_id}><div><strong>{record.test_id}</strong><span>{record.operator_id} · {new Date(record.timestamp).toLocaleString()}</span></div><div className="history-tags"><span className={`tag result-${record.result.toLowerCase()}`}>{record.result.replaceAll('_', ' ')}</span><span className="tag">{record.integrity_status}</span><span className="tag">{record.sync_status}</span></div></article>) : <div className="empty-state">No evidence records match this search.</div>}</div><div className="sync-panel"><div><strong>Offline evidence queue</strong><span>Records remain local until sync is confirmed.</span></div><span className="sync-count">{queued} pending</span></div>{lastSync && <p className="sync-note">Last local sync: {lastSync.toLocaleTimeString()}</p>}<button className="primary" onClick={() => setStep(0)}>Start another test ↗</button></div>}
+        {step === 3 && <div className="panel evidence"><div className="evidence-heading"><div><span className="eyebrow">COMMAND CENTER</span><h3>Evidence history</h3><p className="muted">Searchable local history for demo records and field-captured evidence.</p></div><button className="sync-button" onClick={syncNow} disabled={syncing || !storageReady}>{syncing ? 'Syncing…' : 'Sync queue'}</button></div><div className="history-toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search test ID, operator, result…" /><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="ALL">All records</option><option value="INCONCLUSIVE">Inconclusive</option><option value="PRESUMPTIVE_POSITIVE">Presumptive positive</option><option value="PRESUMPTIVE_NEGATIVE">Presumptive negative</option><option value="QUEUED">Queued</option><option value="SYNCED">Synced</option><option value="VERIFIED">Integrity verified</option></select></div><div className="history-list">{visibleRecords.length ? visibleRecords.map((record) => <article className="history-row" key={record.test_id}><div><strong>{record.test_id}</strong><span>{record.operator_id} · {new Date(record.timestamp).toLocaleString()}</span></div><div className="history-tags"><span className={`tag result-${record.result.toLowerCase()}`}>{record.result.replaceAll('_', ' ')}</span><span className="tag">{record.integrity_status}</span><span className="tag">{record.sync_status}</span>{record.image_sha256 && <button className="tag verify-tag" onClick={() => verifyEvidence(record)}>Verify</button>}</div></article>) : <div className="empty-state">No evidence records match this search.</div>}</div>{integrityMessage && <div className="notice">{integrityMessage}</div>}<div className="sync-panel"><div><strong>Offline evidence queue</strong><span>Records remain local until sync is confirmed.</span></div><span className="sync-count">{queued} pending</span></div>{lastSync && <p className="sync-note">Last local sync: {lastSync.toLocaleTimeString()}</p>}<button className="primary" onClick={() => setStep(0)}>Start another test ↗</button></div>}
       </section>
     </main>
   );
