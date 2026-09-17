@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://narcoscope.local/schemas/analysis.schema.json",
+  "title": "NARCOSCOPE Analysis Record",
+  "type": "object",
+  "required": ["test_id", "status", "result"],
+  "properties": {
+    "test_id": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "enum": ["received", "quality_rejected", "ready_for_inference", "analyzed"]},
+    "result": {"type": "string", "enum": ["PRESUMPTIVE_POSITIVE", "PRESUMPTIVE_NEGATIVE", "INCONCLUSIVE"]},
+    "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "quality": {"type": ["object", "null"]},
+    "calibration": {"type": ["object", "null"]},
+    "roi": {"type": ["object", "null"]},
+    "explanation": {"type": ["string", "null"]}
+  },
+  "additionalProperties": true
+}
