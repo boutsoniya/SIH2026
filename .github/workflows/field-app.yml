@@ -1,0 +1,34 @@
+name: NARCOSCOPE Field App CI
+
+on:
+  push:
+    paths:
+      - 'apps/field-app/**'
+      - '.github/workflows/field-app.yml'
+  pull_request:
+    paths:
+      - 'apps/field-app/**'
+      - '.github/workflows/field-app.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/field-app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/field-app/package.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build field app
+        run: npm run build
