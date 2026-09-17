@@ -41,7 +41,7 @@ SIH2026/
 │   └── vision/             # Python CV/ML inference
 ├── packages/
 │   ├── evidence/           # Hashing, record integrity, verification
-│   └── shared/              # Shared schemas/types
+│   └── shared/             # Shared schemas/types
 ├── data/
 │   ├── sample/
 │   └── schemas/
@@ -66,6 +66,17 @@ SIH2026/
 
 Existing publicly visible prototype ideas may inform the design, but this repository maintains its own implementation, evidence model, UI workflow, evaluation protocol, and documentation.
 
+## Deployment
+
+The current prototype is deployed on Render as two services:
+
+- **Field App:** https://narcoscope-field.onrender.com
+- **Vision API:** https://narcoscope-vision.onrender.com
+
+The field app is configured to call the deployed Vision API through `VITE_VISION_API_URL`. The Vision API accepts cross-origin requests from the Field App domain through the `CORS_ORIGINS` configuration.
+
+The prototype's offline sync flow remains explicitly local/demo behavior until a server-side sync endpoint is implemented.
+
 ## Status
 
-Foundation initialized. Next: field-app shell, API contract, evidence schema, and CV service scaffold.
+Core field workflow, evidence integrity scaffolding, offline persistence, Vision API deployment, and automated frontend build validation are in place. Final browser-level end-to-end validation is still required before presenting the deployment as a fully validated field workflow.
