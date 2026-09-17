@@ -1,0 +1,14 @@
+{
+  "test_id": "TEST-DEMO-0001",
+  "operator_id": "DEMO-OPERATOR-001",
+  "timestamp": "2026-09-17T12:00:00Z",
+  "gps": null,
+  "test_type": "COLORIMETRIC",
+  "result": "INCONCLUSIVE",
+  "confidence": null,
+  "image_sha256": "DEMO_SHA256_REPLACE_WITH_CAPTURE_HASH",
+  "record_hash": "DEMO_RECORD_HASH_REPLACE_WITH_COMPUTED_HASH",
+  "signature": null,
+  "sync_status": "QUEUED",
+  "integrity_status": "UNVERIFIED"
+}
