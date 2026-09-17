@@ -1,5 +1,5 @@
 const DB_NAME = 'narcoscope-field';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = 'evidence';
 
 function openDb() {
@@ -28,10 +28,11 @@ export async function listEvidence() {
   });
 }
 
-export async function saveEvidence(record) {
+export async function saveEvidence(record, imageBlob = null) {
   const db = await openDb();
   const next = {
     ...record,
+    image_blob: imageBlob || record.image_blob || null,
     sync_status: record.sync_status || 'QUEUED',
     updated_at: new Date().toISOString(),
   };
@@ -40,6 +41,16 @@ export async function saveEvidence(record) {
     tx.objectStore(STORE).put(next);
     tx.oncomplete = () => resolve(next);
     tx.onerror = () => reject(tx.error);
+  });
+}
+
+export async function getEvidence(testId) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const request = tx.objectStore(STORE).get(testId);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
   });
 }
 
@@ -61,7 +72,7 @@ export async function updateEvidenceStatus(testId, sync_status) {
 
 export async function queueCount() {
   const records = await listEvidence();
-  return records.filter((item) => item.sync_status === 'QUEUED' || item.sync_status === 'FAILED' || item.sync_status === 'SYNCING').length;
+  return records.filter((item) => ['QUEUED', 'FAILED', 'SYNCING'].includes(item.sync_status)).length;
 }
 
 export async function syncQueuedEvidence() {
