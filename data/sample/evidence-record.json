@@ -1,0 +1,12 @@
+{
+  "test_id": "TEST-2026-000184",
+  "operator_id": "DEMO-OPERATOR-042",
+  "timestamp": "2026-09-17T08:32:11Z",
+  "gps": null,
+  "test_type": "COLORIMETRIC",
+  "result": "INCONCLUSIVE",
+  "confidence": null,
+  "image_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "record_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "signature": null
+}
