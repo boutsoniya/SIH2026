@@ -110,7 +110,58 @@ export default function App() {
 
         {step === 1 && <div className="panel split"><div className="calibration-visual"><div className="demo-preview"><div className="demo-preview-head"><span className="live-chip">● OFFLINE DEMO</span><span>SIMULATED CAPTURE</span></div><div className="demo-card"><div className="demo-card-brand">NARCOSCOPE</div><div className="demo-card-title">REFERENCE COLOUR CARD</div><div className="demo-swatches">{['#e4ce75','#e28b6e','#c44876','#8e72b2','#6aa861','#3a9bc4','#7b7f86','#c35a62'].map((c,i)=><span key={i} style={{background:c}} />)}</div></div><div className="demo-test-kit"><div className="kit-brand">NARCOSCOPE</div><div className="kit-window"><span /></div><div className="kit-well" /></div><div className="demo-preview-foot"><span>Image Quality: Good</span><span>Reference: Detected</span><span>Calibration: Ready</span></div></div></div><div><span className="eyebrow">STEP 02</span><div className="offline-badge">OFFLINE DEMO / SIMULATED CALIBRATION</div><h3>Reference-card calibration</h3><p className="muted">The reference card provides a colour baseline so the pipeline can compensate for illumination and camera differences. In offline demo mode, this stage is simulated locally to demonstrate the workflow.</p><div className="metrics"><div><strong>{analysis?.quality?.passed ? 'PASS' : '—'}</strong><span>quality gate</span></div><div><strong>{analysis?.reference_card ? 'YES' : '—'}</strong><span>reference card</span></div><div><strong>{analysis?.calibration?.status === 'ready' ? 'READY' : '—'}</strong><span>calibration</span></div></div><div className="notice">Offline demo: calibration is simulated locally; no server inference is used. This screen demonstrates the field workflow before a validated kit-specific model is connected.</div><button className="primary" onClick={next}>Continue to analysis →</button></div></div>}
 
-        {step === 2 && <div className="panel result"><div className="result-badge">PRESUMPTIVE FIELD RESULT</div><h3>Analysis ready</h3><p className="muted">Digital interpretation of the colorimetric field test. Laboratory confirmation remains required.</p><div className="metrics"><div><strong>{analysis?.result || 'INCONCLUSIVE'}</strong><span>classification</span></div><div><strong>{analysis?.confidence != null ? `${Math.round(analysis.confidence * 100)}%` : '—'}</strong><span>confidence</span></div><div><strong>{analysis?.quality?.passed ? 'PASS' : '—'}</strong><span>quality gate</span></div></div><div className="notice">{analysis?.explanation || 'The current prototype has no validated kit-specific model attached, so the safe result remains INCONCLUSIVE.'}</div>{analysis?.roi && <p className="sync-note">Reaction ROI: {analysis.roi.join(', ')} · Features extracted: {Object.keys(analysis.features?.features || {}).length}</p>}<button className="primary" onClick={createEvidence}>Create evidence record →</button></div>}
+        {step === 2 && <div className="panel result">
+          <div className="result-badge">PRESUMPTIVE FIELD RESULT</div>
+          <h3>What the camera observed</h3>
+          <p className="muted">NARCOSCOPE separates the observed colour from the final substance decision. Colour alone is not treated as proof of a substance.</p>
+
+          <div className="observation-card">
+            <div className="colour-swatch" style={{ background: analysis?.color_interpretation?.hex || '#9AA6B2' }} />
+            <div className="observation-copy">
+              <span className="section-label">OBSERVED REACTION COLOUR</span>
+              <strong>{analysis?.color_interpretation?.display_name || 'Not available'}</strong>
+              <span>{analysis?.color_interpretation?.description || 'No reaction colour could be measured from the detected ROI.'}</span>
+            </div>
+            <div className="colour-stats">
+              <span><b>{analysis?.color_interpretation?.hue_degrees != null ? analysis.color_interpretation.hue_degrees + '°' : '—'}</b> hue</span>
+              <span><b>{analysis?.color_interpretation?.saturation_pct != null ? analysis.color_interpretation.saturation_pct + '%' : '—'}</b> saturation</span>
+              <span><b>{analysis?.color_interpretation?.brightness_pct != null ? analysis.color_interpretation.brightness_pct + '%' : '—'}</b> brightness</span>
+            </div>
+          </div>
+
+          <div className="interpretation-grid">
+            <div className="interpretation-card">
+              <span className="section-label">REFERENCE CARD</span>
+              <strong>{analysis?.color_interpretation?.family || 'Not available'} family</strong>
+              <p>Compare this response with the physical, kit-specific reference card before assigning a substance interpretation.</p>
+            </div>
+            <div className="interpretation-card">
+              <span className="section-label">POSSIBLE MEANING</span>
+              <strong>Kit-specific reaction</strong>
+              <p>The same colour family can have different meanings across reagent kits. A validated kit profile is required for substance-level interpretation.</p>
+            </div>
+            <div className="interpretation-card">
+              <span className="section-label">CURRENT DECISION</span>
+              <strong>{analysis?.result || 'INCONCLUSIVE'}</strong>
+              <p>{analysis?.confidence != null ? 'Model confidence: ' + Math.round(analysis.confidence * 100) + '%.' : 'No validated kit-specific classifier is active in this prototype.'}</p>
+            </div>
+          </div>
+
+          <div className="metrics">
+            <div><strong>{analysis?.quality?.passed ? 'PASS' : '—'}</strong><span>quality gate</span></div>
+            <div><strong>{analysis?.reference_card ? 'YES' : '—'}</strong><span>reference card</span></div>
+            <div><strong>{analysis?.roi ? 'FOUND' : '—'}</strong><span>reaction ROI</span></div>
+          </div>
+
+          <div className="next-action">
+            <span className="section-label">RECOMMENDED NEXT STEP</span>
+            <strong>{analysis?.result === 'INCONCLUSIVE' ? 'Compare the observed colour with the kit reference card, then confirm presumptive findings through the prescribed laboratory workflow.' : 'Record the presumptive result and retain the original image and evidence metadata for verification.'}</strong>
+          </div>
+
+          <div className="notice"><strong>Presumptive field result.</strong> This digital interpretation supports field testing; it does not replace laboratory confirmation. {analysis?.explanation || 'The current prototype has no validated kit-specific model attached, so the safe result remains INCONCLUSIVE.'}</div>
+          {analysis?.roi && <p className="sync-note">Reaction ROI: {analysis.roi.join(', ')} · Features extracted: {Object.keys(analysis.features?.features || {}).length}</p>}
+          <button className="primary" onClick={createEvidence}>Create evidence record →</button>
+        </div>}
 
         {step === 3 && <div className="panel evidence"><div className="evidence-heading"><div><span className="eyebrow">COMMAND CENTER</span><h3>Evidence history</h3><p className="muted">Searchable local history for demo records and field-captured evidence.</p></div><button className="sync-button" onClick={syncNow} disabled={syncing || !storageReady}>{syncing ? 'Syncing…' : 'Sync queue'}</button></div><div className="history-toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search test ID, operator, result…" /><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="ALL">All records</option><option value="INCONCLUSIVE">Inconclusive</option><option value="PRESUMPTIVE_POSITIVE">Presumptive positive</option><option value="PRESUMPTIVE_NEGATIVE">Presumptive negative</option><option value="QUEUED">Queued</option><option value="SYNCED">Synced</option><option value="VERIFIED">Integrity verified</option></select></div><div className="history-list">{visibleRecords.length ? visibleRecords.map((record) => <article className="history-row" key={record.test_id}><div><strong>{record.test_id}</strong><span>{record.operator_id} · {new Date(record.timestamp).toLocaleString()}</span></div><div className="history-tags"><span className={`tag result-${record.result.toLowerCase()}`}>{record.result.replaceAll('_', ' ')}</span><span className="tag">{record.integrity_status}</span><span className="tag">{record.sync_status}</span>{record.image_sha256 && <button className="tag verify-tag" onClick={() => verifyEvidence(record)}>Verify</button>}</div></article>) : <div className="empty-state">No evidence records match this search.</div>}</div>{integrityMessage && <div className="notice">{integrityMessage}</div>}<div className="sync-panel"><div><strong>Offline evidence queue</strong><span>Records remain local until sync is confirmed.</span></div><span className="sync-count">{queued} pending</span></div>{lastSync && <p className="sync-note">Last local sync: {lastSync.toLocaleTimeString()}</p>}<button className="primary" onClick={() => setStep(0)}>Start another test ↗</button></div>}
       </section>
