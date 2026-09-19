@@ -448,7 +448,7 @@ export default function App() {
                 <div className="demo-swatches">{demoPalette.map(({ key, hex }) => <button type="button" key={key} className={demoCase === key ? 'demo-swatch selected' : 'demo-swatch'} style={{ background: hex }} onClick={() => { setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }} aria-label={`Select ${DEMO_CASES[key].display_name}`} />)}</div>
               </div>
               <div className="demo-test-kit"><div className="kit-brand">NARCOSCOPE</div><div className="kit-window">{demoCase ? <span style={{ background: DEMO_CASES[demoCase].hex }} /> : <span className="unselected-dot" />}</div><div className="kit-well" /></div>
-              <div className="demo-preview-foot"><span>Image quality: Good</span><span>Reference: Detected</span><span>Calibration: {demoCase ? 'Matched' : 'Waiting'}</span></div>
+              <div className="demo-preview-foot"><span>Image quality: Good</span><span>Card: Detected</span><span>Colour match: {demoCase ? 'Selected' : 'Waiting'}</span></div>
             </div>
           </div>
           <div>
@@ -463,14 +463,14 @@ export default function App() {
             </div>
 
             <div className="professional-section">
-              <span className="section-label">2 · REFERENCE CARD INTERPRETATION</span>
+              <span className="section-label">2 · REFERENCE CARD INTERPRETATION</span><div className="interpretation-warning">Reference-card match ≠ confirmed substance</div>
               <div className="match-summary">
                 <div className="match-preview">{demoCase ? <span style={{ background: DEMO_CASES[demoCase].hex }} /> : <span className="empty-match">?</span>}</div>
                 <div><strong>{demoCase ? DEMO_CASES[demoCase].possible_match : 'Choose a colour to see the example association'}</strong><p>{demoCase ? DEMO_CASES[demoCase].plain_meaning : 'This demo deliberately does not preselect a colour. The officer makes the visual match first.'}</p></div>
               </div>
             </div>
 
-            <div className="metrics"><div><strong>PASS</strong><span>quality gate</span></div><div><strong>YES</strong><span>reference card</span></div><div><strong>{demoCase ? 'READY' : 'WAITING'}</strong><span>calibration</span></div></div>
+            <div className="metrics"><div><strong>PASS</strong><span>image quality</span></div><div><strong>FOUND</strong><span>reference card</span></div><div><strong>{demoCase ? 'READY' : 'WAITING'}</strong><span>colour match</span></div></div>
 
             <div className="notice">Offline demo uses synthetic colour cases to demonstrate the interaction. Colour associations are illustrative and kit-specific; they are not chemical identifications.</div>
             <button className="primary" onClick={next} disabled={!demoCase}>Continue to analysis →</button>
@@ -509,8 +509,8 @@ export default function App() {
             </div>
             <div className="interpretation-card">
               <span className="section-label">CURRENT DECISION</span>
-              <strong>{analysis?.result || 'INCONCLUSIVE'}</strong>
-              <p>{analysis?.confidence != null ? 'Model confidence: ' + Math.round(analysis.confidence * 100) + '%.' : 'No validated kit-specific classifier is active in this prototype.'}</p>
+              <strong>{analysis?.status === 'offline_demo' ? 'SIMULATED ' + (analysis?.result || 'INCONCLUSIVE') : (analysis?.result || 'INCONCLUSIVE')}</strong>
+              <p>{analysis?.status === 'offline_demo' ? 'Offline demo scenario only — not a real substance detection.' : analysis?.confidence != null ? 'Model confidence: ' + Math.round(analysis.confidence * 100) + '%.' : 'No validated kit-specific classifier is active in this prototype.'}</p>
             </div>
           </div>
 
@@ -530,7 +530,7 @@ export default function App() {
             <strong>{analysis?.result === 'INCONCLUSIVE' ? 'Compare the observed colour with the kit reference card, then confirm presumptive findings through the prescribed laboratory workflow.' : 'Record the presumptive result and retain the original image and evidence metadata for verification.'}</strong>
           </div>
 
-          <div className="notice"><strong>Presumptive field result.</strong> This digital interpretation supports field testing; it does not replace laboratory confirmation. {analysis?.demo_note || analysis?.explanation || 'The current prototype has no validated kit-specific model attached, so the safe result remains INCONCLUSIVE.'}</div>
+          <div className="notice"><strong>{analysis?.status === 'offline_demo' ? 'SIMULATED DEMO RESULT.' : 'Presumptive field result.'}</strong> {analysis?.status === 'offline_demo' ? 'This offline scenario is illustrative and does not indicate that the named substance is present.' : 'This digital interpretation supports field testing; it does not replace laboratory confirmation.'} {analysis?.demo_note || analysis?.explanation || 'The current prototype has no validated kit-specific model attached, so the safe result remains INCONCLUSIVE.'}</div>
           {analysis?.roi && <p className="sync-note">Reaction ROI: {analysis.roi.join(', ')} · Features extracted: {Object.keys(analysis.features?.features || {}).length}</p>}
           <button className="primary" onClick={createEvidence}>Create evidence record →</button>
         </div>}
