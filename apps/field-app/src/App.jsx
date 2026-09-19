@@ -15,6 +15,7 @@ const DEMO_CASES = {
     saturation_pct: 10,
     brightness_pct: 85,
     possible_match: 'No reliable reference-card match',
+    plain_meaning: 'The colour is too weak or uneven to match reliably.'
     outcome: 'INCONCLUSIVE',
     note: 'Synthetic demo case: the reaction is intentionally weak or uneven, so the workflow asks the officer to recapture or follow the prescribed confirmation process.'
   },
@@ -26,7 +27,8 @@ const DEMO_CASES = {
     hue_degrees: 337,
     saturation_pct: 58,
     brightness_pct: 77,
-    possible_match: 'Example reference-card association: Cocaine (COC)',
+    possible_match: 'Example reference-card association: Cocaine',
+    plain_meaning: 'The reference card for this example shows a pink / magenta reaction associated with a cocaine target.',
     outcome: 'PRESUMPTIVE_POSITIVE',
     note: 'Synthetic demo association only. The displayed reference-card match is not a chemical identification and depends on the validated kit profile.'
   },
@@ -38,7 +40,8 @@ const DEMO_CASES = {
     hue_degrees: 198,
     saturation_pct: 70,
     brightness_pct: 77,
-    possible_match: 'Example reference-card association: Amphetamine (AMP)',
+    possible_match: 'Example reference-card association: Amphetamine',
+    plain_meaning: 'The reference card for this example shows a blue reaction associated with an amphetamine target.',
     outcome: 'PRESUMPTIVE_POSITIVE',
     note: 'Synthetic demo association only. The displayed reference-card match is not a chemical identification and depends on the validated kit profile.'
   },
@@ -50,7 +53,8 @@ const DEMO_CASES = {
     hue_degrees: 267,
     saturation_pct: 36,
     brightness_pct: 70,
-    possible_match: 'Example reference-card association: MDMA (MDMA)',
+    possible_match: 'Example reference-card association: MDMA',
+    plain_meaning: 'The reference card for this example shows a purple / violet reaction associated with an MDMA target.',
     outcome: 'PRESUMPTIVE_POSITIVE',
     note: 'Synthetic demo association only. The displayed reference-card match is not a chemical identification and depends on the validated kit profile.'
   },
@@ -62,7 +66,8 @@ const DEMO_CASES = {
     hue_degrees: 113,
     saturation_pct: 42,
     brightness_pct: 66,
-    possible_match: 'Example reference-card association: Cannabis (THC)',
+    possible_match: 'Example reference-card association: Cannabis',
+    plain_meaning: 'The reference card for this example shows a green reaction associated with a cannabis target.',
     outcome: 'PRESUMPTIVE_POSITIVE',
     note: 'Synthetic demo association only. The displayed reference-card match is not a chemical identification and depends on the validated kit profile.'
   },
@@ -74,7 +79,8 @@ const DEMO_CASES = {
     hue_degrees: 50,
     saturation_pct: 49,
     brightness_pct: 89,
-    possible_match: 'Example reference-card association: Heroin (OIN)',
+    possible_match: 'Example reference-card association: No significant change / negative control',
+    plain_meaning: 'The reaction stays near the expected baseline colour for this example.',
     outcome: 'PRESUMPTIVE_NEGATIVE',
     note: 'Synthetic demo association only. Use the validated kit interpretation rather than treating colour alone as proof.'
   }
@@ -213,7 +219,7 @@ export default function App() {
       <section className="workspace">
         {step === 0 && <div className="panel capture"><div className="capture-frame"><div className="guide-card">REFERENCE CARD</div><div className="guide-kit">TEST KIT<br /><small>ALIGN INSIDE FRAME</small></div><div className="crosshair">+</div></div><div className="capture-controls"><div><h3>Guided capture</h3><p className="muted">Select a field image. The vision service will run a quality gate before calibration, ROI extraction and safe inference.</p></div><label className="upload">{file?.name || 'Choose test image'}<input type="file" accept="image/*" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>{analysisError && <div className="notice">{analysisError}</div>}<button className="primary" onClick={runAnalysis} disabled={analyzing}>{analyzing ? 'Analyzing…' : 'Run vision quality gate →'}</button><button className="secondary" onClick={() => { setAnalysis(makeDemoAnalysis(demoCase)); setOffline(true); setAnalysisError(''); setIntegrityMessage('Offline demo: synthetic colour case loaded locally; no server inference was used.'); setStep(1); }}>Use offline demo workflow</button></div></div>}
 
-        {step === 1 && <div className="panel split"><div className="calibration-visual"><div className="demo-preview"><div className="demo-preview-head"><span className="live-chip">● OFFLINE DEMO</span><span>SIMULATED CAPTURE</span></div><div className="demo-card"><div className="demo-card-brand">NARCOSCOPE</div><div className="demo-card-title">REFERENCE COLOUR CARD</div><div className="demo-swatches">{['#e4ce75','#e28b6e','#c44876','#8e72b2','#6aa861','#3a9bc4','#7b7f86','#c35a62'].map((c,i)=><span key={i} style={{background:c}} />)}</div></div><div className="demo-test-kit"><div className="kit-brand">NARCOSCOPE</div><div className="kit-window"><span /></div><div className="kit-well" /></div><div className="demo-preview-foot"><span>Image Quality: Good</span><span>Reference: Detected</span><span>Calibration: Ready</span></div></div></div><div><span className="eyebrow">STEP 02</span><div className="offline-badge">OFFLINE DEMO / SIMULATED CALIBRATION</div><h3>Reference-card calibration</h3><p className="muted">The reference card provides a colour baseline so the pipeline can compensate for illumination and camera differences. In offline demo mode, this stage is simulated locally to demonstrate the workflow.</p><div className="metrics"><div><strong>{analysis?.quality?.passed ? 'PASS' : '—'}</strong><span>quality gate</span></div><div><strong>{analysis?.reference_card ? 'YES' : '—'}</strong><span>reference card</span></div><div><strong>{analysis?.calibration?.status === 'ready' ? 'READY' : '—'}</strong><span>calibration</span></div></div><div className="demo-case-row"><label><span className="section-label">DEMO TEST CASE</span><select value={demoCase} onChange={(event) => { const key = event.target.value; setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }}><option value="magenta">Pink / magenta → example COC</option><option value="blue">Blue → example AMP</option><option value="violet">Purple / violet → example MDMA</option><option value="green">Green → example THC</option><option value="yellow">Yellow → example OIN</option><option value="inconclusive">Faint / uneven → inconclusive</option></select></label><div className="demo-case-result"><span>SIMULATED OBSERVATION</span><strong>{analysis?.color_interpretation?.display_name || '—'}</strong><small>{analysis?.color_interpretation?.possible_match || 'Select a demo case'}</small></div></div><div className="notice">Offline demo: this is a synthetic case used to demonstrate the interpretation workflow. The colour and reference-card association are illustrative; a validated kit profile is required for real field interpretation.</div><button className="primary" onClick={next}>Continue to analysis →</button></div></div>}
+        {step === 1 && <div className="panel split"><div className="calibration-visual"><div className="demo-preview"><div className="demo-preview-head"><span className="live-chip">● OFFLINE DEMO</span><span>SIMULATED CAPTURE</span></div><div className="demo-card"><div className="demo-card-brand">NARCOSCOPE</div><div className="demo-card-title">REFERENCE COLOUR CARD</div><div className="demo-swatches">{['#e4ce75','#e28b6e','#c44876','#8e72b2','#6aa861','#3a9bc4','#7b7f86','#c35a62'].map((c,i)=><span key={i} style={{background:c}} />)}</div></div><div className="demo-test-kit"><div className="kit-brand">NARCOSCOPE</div><div className="kit-window"><span /></div><div className="kit-well" /></div><div className="demo-preview-foot"><span>Image Quality: Good</span><span>Reference: Detected</span><span>Calibration: Ready</span></div></div></div><div><span className="eyebrow">STEP 02</span><div className="offline-badge">OFFLINE DEMO / SIMULATED CALIBRATION</div><h3>Reference-card calibration</h3><p className="muted">The reference card provides a colour baseline so the pipeline can compensate for illumination and camera differences. In offline demo mode, this stage is simulated locally to demonstrate the workflow.</p><div className="metrics"><div><strong>{analysis?.quality?.passed ? 'PASS' : '—'}</strong><span>quality gate</span></div><div><strong>{analysis?.reference_card ? 'YES' : '—'}</strong><span>reference card</span></div><div><strong>{analysis?.calibration?.status === 'ready' ? 'READY' : '—'}</strong><span>calibration</span></div></div><div className="demo-case-row"><label><span className="section-label">DEMO TEST CASE</span><select value={demoCase} onChange={(event) => { const key = event.target.value; setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }}><option value="magenta">Pink / magenta → example: Cocaine</option><option value="blue">Blue → example: Amphetamine</option><option value="violet">Purple / violet → example: MDMA</option><option value="green">Green → example: Cannabis</option><option value="yellow">Yellow → example: No significant change</option><option value="inconclusive">Faint / uneven → Inconclusive</option></select></label><div className="demo-case-result"><span>SIMULATED OBSERVATION</span><strong>{analysis?.color_interpretation?.display_name || '—'}</strong><small>{analysis?.color_interpretation?.possible_match || 'Select a demo case'}</small></div></div><div className="notice">Offline demo: this is a synthetic case used to demonstrate the interpretation workflow. The colour and reference-card association are illustrative; a validated kit profile is required for real field interpretation.</div><button className="primary" onClick={next}>Continue to analysis →</button></div></div>}
 
         {step === 2 && <div className="panel result">
           <div className="result-badge">PRESUMPTIVE FIELD RESULT</div>
