@@ -15,7 +15,7 @@ const DEMO_CASES = {
     saturation_pct: 10,
     brightness_pct: 85,
     possible_match: 'No reliable reference-card match',
-    plain_meaning: 'The colour is too weak or uneven to match reliably.'
+    plain_meaning: 'The colour is too weak or uneven to match reliably.',
     outcome: 'INCONCLUSIVE',
     note: 'Synthetic demo case: the reaction is intentionally weak or uneven, so the workflow asks the officer to recapture or follow the prescribed confirmation process.'
   },
