@@ -263,13 +263,27 @@ export default function App() {
         setLocationStatus('captured');
         resolve(gps);
       },
-      () => {
-        setLocationStatus('permission denied');
+      (error) => {
+        const reason = {
+          1: 'permission denied',
+          2: 'location unavailable',
+          3: 'location request timed out',
+        }[error?.code] || 'location unavailable';
+        setLocationStatus(reason);
         resolve(null);
       },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
   });
+
+  const testGps = async () => {
+    const gps = await captureGps();
+    setIntegrityMessage(
+      gps
+        ? `GPS ready for this evidence record (accuracy ±${gps.accuracy_m} m).`
+        : 'GPS could not be captured. Turn on device Location, allow browser access for this site, and try again.'
+    );
+  };
 
   const createEvidence = async () => {
     setIntegrityMessage('Capturing location and sealing the evidence record…');
@@ -399,7 +413,7 @@ export default function App() {
             </div>
             {cameraError && <div className="notice">{cameraError}</div>}
             <label className="field-input"><span className="section-label">OPERATOR ID</span><input value={operatorId} onChange={(event) => setOperatorId(event.target.value)} placeholder="e.g. OFFICER-042" /></label>
-            <div className="location-chip">GPS: {locationStatus === 'captured' ? 'captured on evidence save' : locationStatus}</div>
+            <div className="location-row"><div className={`location-chip location-${locationStatus.replaceAll(' ', '-')} `}>GPS: {locationStatus === 'not captured' ? 'will capture when evidence is saved' : locationStatus}</div><button className="location-test" onClick={testGps} type="button">Test GPS access</button></div>
             {analysisError && <div className="notice">{analysisError}</div>}
             <button className="primary" onClick={runAnalysis} disabled={analyzing || !file}>{analyzing ? 'Analyzing…' : 'Run vision quality gate →'}</button>
             <button className="secondary" onClick={() => { setAnalysis(makeDemoAnalysis(demoCase)); setOffline(true); setAnalysisError(''); setIntegrityMessage('Offline demo: synthetic colour case loaded locally; no server inference was used.'); setStep(1); }}>Use offline demo workflow</button>
