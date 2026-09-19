@@ -264,6 +264,11 @@ export default function App() {
             <div><strong>{analysis?.roi ? 'FOUND' : '—'}</strong><span>reaction ROI</span></div>
           </div>
 
+          <div className="help-box">
+            <div className="help-icon">?</div>
+            <div><span className="section-label">WHAT DOES THIS MEAN?</span><strong>{analysis?.color_interpretation?.display_name || 'Observed reaction'} is what the camera measured in the reaction area.</strong><p>{analysis?.color_interpretation?.plain_meaning || 'Compare the observed colour with the physical reference card for the selected test kit.'} Do not treat colour alone as a confirmed identification.</p></div>
+          </div>
+
           <div className="next-action">
             <span className="section-label">RECOMMENDED NEXT STEP</span>
             <strong>{analysis?.result === 'INCONCLUSIVE' ? 'Compare the observed colour with the kit reference card, then confirm presumptive findings through the prescribed laboratory workflow.' : 'Record the presumptive result and retain the original image and evidence metadata for verification.'}</strong>
