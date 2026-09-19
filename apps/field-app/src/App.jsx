@@ -131,7 +131,7 @@ export default function App() {
   const [analyzing, setAnalyzing] = useState(false);
   const [visionStatus, setVisionStatus] = useState('not checked');
   const [integrityMessage, setIntegrityMessage] = useState('');
-  const [demoCase, setDemoCase] = useState('magenta');
+  const [demoCase, setDemoCase] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [cameraActive, setCameraActive] = useState(false);
@@ -139,6 +139,15 @@ export default function App() {
   const cameraStreamRef = useRef(null);
   const [operatorId, setOperatorId] = useState('DEMO-OPERATOR-001');
   const [locationStatus, setLocationStatus] = useState('not captured');
+
+  const demoPalette = [
+    { key: 'yellow', label: 'Yellow', hex: DEMO_CASES.yellow.hex },
+    { key: 'magenta', label: 'Pink / magenta', hex: DEMO_CASES.magenta.hex },
+    { key: 'violet', label: 'Purple / violet', hex: DEMO_CASES.violet.hex },
+    { key: 'blue', label: 'Blue', hex: DEMO_CASES.blue.hex },
+    { key: 'green', label: 'Green', hex: DEMO_CASES.green.hex },
+    { key: 'inconclusive', label: 'Faint / uneven', hex: DEMO_CASES.inconclusive.hex },
+  ];
 
   const queued = useMemo(() => records.filter((record) => ['QUEUED', 'FAILED', 'SYNCING'].includes(record.sync_status)).length, [records]);
   const visibleRecords = useMemo(() => {
@@ -218,6 +227,15 @@ export default function App() {
   };
 
   useEffect(() => () => stopCamera(), []);
+
+  const startOfflineDemo = () => {
+    setDemoCase('');
+    setAnalysis(null);
+    setOffline(true);
+    setAnalysisError('');
+    setIntegrityMessage('Offline demo ready. Match the observed reaction colour to the reference card.');
+    setStep(1);
+  };
 
   const refreshQueue = async () => {
     if (!supportsOfflineStorage()) return;
@@ -416,11 +434,48 @@ export default function App() {
             <div className="location-row"><div className={`location-chip location-${locationStatus.replaceAll(' ', '-')} `}>GPS: {locationStatus === 'not captured' ? 'will capture when evidence is saved' : locationStatus}</div><button className="location-test" onClick={testGps} type="button">Test GPS access</button></div>
             {analysisError && <div className="notice">{analysisError}</div>}
             <button className="primary" onClick={runAnalysis} disabled={analyzing || !file}>{analyzing ? 'Analyzing…' : 'Run vision quality gate →'}</button>
-            <button className="secondary" onClick={() => { setAnalysis(makeDemoAnalysis(demoCase)); setOffline(true); setAnalysisError(''); setIntegrityMessage('Offline demo: synthetic colour case loaded locally; no server inference was used.'); setStep(1); }}>Use offline demo workflow</button>
+            <button className="secondary" onClick={startOfflineDemo}>Use offline demo workflow</button>
           </div>
         </div>}
 
-        {step === 1 && <div className="panel split"><div className="calibration-visual"><div className="demo-preview"><div className="demo-preview-head"><span className="live-chip">● OFFLINE DEMO</span><span>SIMULATED CAPTURE</span></div><div className="demo-card"><div className="demo-card-brand">NARCOSCOPE</div><div className="demo-card-title">REFERENCE COLOUR CARD</div><div className="demo-swatches">{['#e4ce75','#e28b6e','#c44876','#8e72b2','#6aa861','#3a9bc4','#7b7f86','#c35a62'].map((c,i)=><span key={i} style={{background:c}} />)}</div></div><div className="demo-test-kit"><div className="kit-brand">NARCOSCOPE</div><div className="kit-window"><span /></div><div className="kit-well" /></div><div className="demo-preview-foot"><span>Image Quality: Good</span><span>Reference: Detected</span><span>Calibration: Ready</span></div></div></div><div><span className="eyebrow">STEP 02</span><div className="offline-badge">OFFLINE DEMO / SIMULATED CALIBRATION</div><h3>Reference-card calibration</h3><p className="muted">The reference card provides a colour baseline so the pipeline can compensate for illumination and camera differences. In offline demo mode, this stage is simulated locally to demonstrate the workflow.</p><div className="metrics"><div><strong>{analysis?.quality?.passed ? 'PASS' : '—'}</strong><span>quality gate</span></div><div><strong>{analysis?.reference_card ? 'YES' : '—'}</strong><span>reference card</span></div><div><strong>{analysis?.calibration?.status === 'ready' ? 'READY' : '—'}</strong><span>calibration</span></div></div><div className="demo-case-row"><label><span className="section-label">DEMO TEST CASE</span><select value={demoCase} onChange={(event) => { const key = event.target.value; setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }}><option value="magenta">Pink / magenta → example: Cocaine</option><option value="blue">Blue → example: Amphetamine</option><option value="violet">Purple / violet → example: MDMA</option><option value="green">Green → example: Cannabis</option><option value="yellow">Yellow → example: No significant change</option><option value="inconclusive">Faint / uneven → Inconclusive</option></select></label><div className="demo-case-result"><span>SIMULATED OBSERVATION</span><strong>{analysis?.color_interpretation?.display_name || '—'}</strong><small>{analysis?.color_interpretation?.possible_match || 'Select a demo case'}</small></div></div><div className="notice">Offline demo: this is a synthetic case used to demonstrate the interpretation workflow. The colour and reference-card association are illustrative; a validated kit profile is required for real field interpretation.</div><button className="primary" onClick={next}>Continue to analysis →</button></div></div>}
+        {step === 1 && <div className="panel split">
+          <div className="calibration-visual">
+            <div className="demo-preview">
+              <div className="demo-preview-head"><span className="live-chip">● OFFLINE DEMO</span><span>REFERENCE CARD VIEW</span></div>
+              <div className="demo-card">
+                <div className="demo-card-brand">NARCOSCOPE</div>
+                <div className="demo-card-title">REFERENCE COLOUR CARD</div>
+                <div className="demo-swatches">{demoPalette.map(({ key, hex }) => <button type="button" key={key} className={demoCase === key ? 'demo-swatch selected' : 'demo-swatch'} style={{ background: hex }} onClick={() => { setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }} aria-label={`Select ${DEMO_CASES[key].display_name}`} />)}</div>
+              </div>
+              <div className="demo-test-kit"><div className="kit-brand">NARCOSCOPE</div><div className="kit-window">{demoCase ? <span style={{ background: DEMO_CASES[demoCase].hex }} /> : <span className="unselected-dot" />}</div><div className="kit-well" /></div>
+              <div className="demo-preview-foot"><span>Image quality: Good</span><span>Reference: Detected</span><span>Calibration: {demoCase ? 'Matched' : 'Waiting'}</span></div>
+            </div>
+          </div>
+          <div>
+            <span className="eyebrow">STEP 02</span>
+            <div className="offline-badge">OFFLINE DEMO / SIMULATED CALIBRATION</div>
+            <h3>Match the reaction colour</h3>
+            <p className="muted">Look at the reaction area and tap the closest matching colour on the reference card. Start with the observed colour — the app will explain the associated example after selection.</p>
+
+            <div className="professional-section">
+              <div className="section-header-row"><div><span className="section-label">1 · SELECT OBSERVED COLOUR</span><strong>{demoCase ? DEMO_CASES[demoCase].display_name : 'Nothing selected yet'}</strong></div><span className="selection-status">{demoCase ? 'MATCHED' : 'SELECT ONE'}</span></div>
+              <div className="colour-choice-grid">{demoPalette.map(({ key, label, hex }) => <button type="button" key={key} className={demoCase === key ? 'colour-choice selected' : 'colour-choice'} onClick={() => { setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }}><span className="choice-swatch" style={{ background: hex }} /><span>{label}</span>{demoCase === key && <span className="choice-check">✓</span>}</button>)}</div>
+            </div>
+
+            <div className="professional-section">
+              <span className="section-label">2 · REFERENCE CARD INTERPRETATION</span>
+              <div className="match-summary">
+                <div className="match-preview">{demoCase ? <span style={{ background: DEMO_CASES[demoCase].hex }} /> : <span className="empty-match">?</span>}</div>
+                <div><strong>{demoCase ? DEMO_CASES[demoCase].possible_match : 'Choose a colour to see the example association'}</strong><p>{demoCase ? DEMO_CASES[demoCase].plain_meaning : 'This demo deliberately does not preselect a colour. The officer makes the visual match first.'}</p></div>
+              </div>
+            </div>
+
+            <div className="metrics"><div><strong>PASS</strong><span>quality gate</span></div><div><strong>YES</strong><span>reference card</span></div><div><strong>{demoCase ? 'READY' : 'WAITING'}</strong><span>calibration</span></div></div>
+
+            <div className="notice">Offline demo uses synthetic colour cases to demonstrate the interaction. Colour associations are illustrative and kit-specific; they are not chemical identifications.</div>
+            <button className="primary" onClick={next} disabled={!demoCase}>Continue to analysis →</button>
+          </div>
+        </div>}
 
         {step === 2 && <div className="panel result">
           <div className="result-badge">PRESUMPTIVE FIELD RESULT</div>
