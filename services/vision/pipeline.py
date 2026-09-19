@@ -37,4 +37,4 @@ def analyze_image(payload: bytes) -> dict:
     roi = detect_reaction_roi(image, reference)
     features_result = extract_color_features(image, roi)
     inference = predict(features_result.get("features", {}))
-    return {"status": "ready_for_inference", **inference, "quality": quality, "calibration": calibration, "reference_card": reference_box, "roi": roi, "features": features_result, "explanation": "Quality, reference-card candidate detection and ROI feature extraction completed. No validated field model is attached, so the safe result remains inconclusive."}
+    return {"status": "ready_for_inference", **inference, "quality": quality, "calibration": calibration, "reference_card": reference_box, "roi": roi, "features": features_result, "color_interpretation": features_result.get("color_interpretation"), "explanation": "Quality, reference-card candidate detection and ROI feature extraction completed. The observed colour is reported separately from substance identification. No validated field model is attached, so the safe result remains inconclusive."}
