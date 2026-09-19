@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getEvidence, listEvidence, saveEvidence, syncQueuedEvidence, supportsOfflineStorage } from './offlineQueue';
 import { DEMO_RECORDS } from './demoRecords';
 import { analyzeImage, checkVisionHealth } from './visionApi';
@@ -132,6 +132,11 @@ export default function App() {
   const [visionStatus, setVisionStatus] = useState('not checked');
   const [integrityMessage, setIntegrityMessage] = useState('');
   const [demoCase, setDemoCase] = useState('magenta');
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const [cameraActive, setCameraActive] = useState(false);
+  const cameraVideoRef = useRef(null);
+  const cameraStreamRef = useRef(null);
   const [operatorId, setOperatorId] = useState('DEMO-OPERATOR-001');
   const [locationStatus, setLocationStatus] = useState('not captured');
 
@@ -144,6 +149,75 @@ export default function App() {
       return matchesSearch && matchesFilter;
     });
   }, [records, search, filter]);
+
+  const stopCamera = () => {
+    cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    cameraStreamRef.current = null;
+    if (cameraVideoRef.current) cameraVideoRef.current.srcObject = null;
+    setCameraActive(false);
+  };
+
+  const openCamera = async () => {
+    setCameraError('');
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('Device camera is not available in this browser. Use the image upload option instead.');
+      return;
+    }
+    try {
+      stopCamera();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      cameraStreamRef.current = stream;
+      setCameraOpen(true);
+      setCameraActive(true);
+      requestAnimationFrame(() => {
+        if (cameraVideoRef.current) {
+          cameraVideoRef.current.srcObject = stream;
+          cameraVideoRef.current.play().catch(() => {});
+        }
+      });
+    } catch (error) {
+      setCameraError(error?.message || 'Camera permission was denied or the camera could not be opened.');
+      setCameraOpen(false);
+      setCameraActive(false);
+    }
+  };
+
+  const captureFromCamera = () => {
+    const video = cameraVideoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      setCameraError('Camera preview is not ready yet. Please wait a moment and try again.');
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      setCameraError('Camera capture is unavailable in this browser.');
+      return;
+    }
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setCameraError('The camera frame could not be captured.');
+        return;
+      }
+      const captured = new File([blob], 'narcoscope-camera-capture.jpg', {
+        type: 'image/jpeg',
+        lastModified: Date.now(),
+      });
+      setFile(captured);
+      setCameraOpen(false);
+      stopCamera();
+      setCameraError('');
+      setAnalysisError('');
+    }, 'image/jpeg', 0.92);
+  };
+
+  useEffect(() => () => stopCamera(), []);
 
   const refreshQueue = async () => {
     if (!supportsOfflineStorage()) return;
@@ -258,7 +332,7 @@ export default function App() {
     try { await syncQueuedEvidence(); setLastSync(new Date()); await refreshQueue(); } finally { setSyncing(false); }
   };
 
-  const next = () => setStep((value) => Math.min(value + 1, steps.length - 1));
+  const next = () => { stopCamera(); setStep((value) => Math.min(value + 1, steps.length - 1)); };
 
   return (
     <main className="shell">
@@ -271,8 +345,66 @@ export default function App() {
 
       <nav className="steps">{steps.map((label, index) => <button key={label} className={index === step ? 'active' : index < step ? 'done' : ''} onClick={() => setStep(index)}><span>{index + 1}</span>{label}</button>)}</nav>
 
+      {cameraOpen && <div className="camera-modal" role="dialog" aria-modal="true" aria-label="NARCOSCOPE camera capture">
+        <div className="camera-sheet">
+          <div className="camera-sheet-head">
+            <div>
+              <span className="eyebrow">STEP 01 · LIVE CAMERA</span>
+              <h3>Align the test before capture</h3>
+              <p className="muted">Keep both the reference card and reaction area inside the frame. The card is used as the calibration reference.</p>
+            </div>
+            <button className="camera-close" onClick={() => { stopCamera(); setCameraOpen(false); }}>Close</button>
+          </div>
+          <div className="camera-stage">
+            <video ref={cameraVideoRef} className="camera-video" playsInline muted autoPlay />
+            <div className="camera-overlay">
+              <div className="reference-zone">REFERENCE CARD</div>
+              <div className="reaction-zone">REACTION AREA</div>
+              <div className="camera-crosshair">+</div>
+            </div>
+          </div>
+          <div className="camera-checks">
+            <span>✓ Reference card visible</span>
+            <span>✓ Reaction area visible</span>
+            <span>✓ Avoid glare / blur</span>
+          </div>
+          <div className="camera-sheet-actions">
+            <button className="secondary" onClick={() => { stopCamera(); setCameraOpen(false); }}>Cancel</button>
+            <button className="primary" onClick={captureFromCamera} disabled={!cameraActive}>Capture image</button>
+          </div>
+        </div>
+      </div>}
+
       <section className="workspace">
-        {step === 0 && <div className="panel capture"><div className="capture-frame"><div className="guide-card">REFERENCE CARD</div><div className="guide-kit">TEST KIT<br /><small>ALIGN INSIDE FRAME</small></div><div className="crosshair">+</div></div><div className="capture-controls"><div><h3>Guided capture</h3><p className="muted">Select a field image. The vision service will run a quality gate before calibration, ROI extraction and safe inference.</p></div><label className="upload">{file?.name || 'Choose test image'}<input type="file" accept="image/*" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label><label className="field-input"><span className="section-label">OPERATOR ID</span><input value={operatorId} onChange={(event) => setOperatorId(event.target.value)} placeholder="e.g. OFFICER-042" /></label><div className="location-chip">GPS: {locationStatus === 'captured' ? 'captured on evidence save' : locationStatus}</div>{analysisError && <div className="notice">{analysisError}</div>}{/* analysis error */}<button className="primary" onClick={runAnalysis} disabled={analyzing}>{analyzing ? 'Analyzing…' : 'Run vision quality gate →'}</button><button className="secondary" onClick={() => { setAnalysis(makeDemoAnalysis(demoCase)); setOffline(true); setAnalysisError(''); setIntegrityMessage('Offline demo: synthetic colour case loaded locally; no server inference was used.'); setStep(1); }}>Use offline demo workflow</button></div></div>}
+        {step === 0 && <div className="panel capture">
+          <div className="capture-frame">
+            <div className="guide-card">REFERENCE CARD</div>
+            <div className="guide-kit">TEST KIT<br /><small>ALIGN INSIDE FRAME</small></div>
+            <div className="crosshair">+</div>
+          </div>
+          <div className="capture-controls">
+            <div>
+              <span className="eyebrow">STEP 01</span>
+              <h3>Guided capture</h3>
+              <p className="muted">Use the device camera to capture the reaction. Keep the reference colour card and test reaction area visible together so the vision pipeline can use the card for calibration.</p>
+            </div>
+            <div className="camera-actions">
+              <button className="primary camera-open-button" onClick={openCamera}>{file ? 'Retake with device camera' : 'Open device camera'}</button>
+              <label className="upload">{file?.name || 'Choose image from device'}<input type="file" accept="image/*" capture="environment" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>
+            </div>
+            {file && <div className="capture-selected">Selected: <strong>{file.name}</strong></div>}
+            <div className="capture-guidance">
+              <span className="section-label">IN-FRAME CHECK</span>
+              <span>1. Reference card visible · 2. Reaction area visible · 3. Avoid glare and blur</span>
+            </div>
+            {cameraError && <div className="notice">{cameraError}</div>}
+            <label className="field-input"><span className="section-label">OPERATOR ID</span><input value={operatorId} onChange={(event) => setOperatorId(event.target.value)} placeholder="e.g. OFFICER-042" /></label>
+            <div className="location-chip">GPS: {locationStatus === 'captured' ? 'captured on evidence save' : locationStatus}</div>
+            {analysisError && <div className="notice">{analysisError}</div>}
+            <button className="primary" onClick={runAnalysis} disabled={analyzing || !file}>{analyzing ? 'Analyzing…' : 'Run vision quality gate →'}</button>
+            <button className="secondary" onClick={() => { setAnalysis(makeDemoAnalysis(demoCase)); setOffline(true); setAnalysisError(''); setIntegrityMessage('Offline demo: synthetic colour case loaded locally; no server inference was used.'); setStep(1); }}>Use offline demo workflow</button>
+          </div>
+        </div>}
 
         {step === 1 && <div className="panel split"><div className="calibration-visual"><div className="demo-preview"><div className="demo-preview-head"><span className="live-chip">● OFFLINE DEMO</span><span>SIMULATED CAPTURE</span></div><div className="demo-card"><div className="demo-card-brand">NARCOSCOPE</div><div className="demo-card-title">REFERENCE COLOUR CARD</div><div className="demo-swatches">{['#e4ce75','#e28b6e','#c44876','#8e72b2','#6aa861','#3a9bc4','#7b7f86','#c35a62'].map((c,i)=><span key={i} style={{background:c}} />)}</div></div><div className="demo-test-kit"><div className="kit-brand">NARCOSCOPE</div><div className="kit-window"><span /></div><div className="kit-well" /></div><div className="demo-preview-foot"><span>Image Quality: Good</span><span>Reference: Detected</span><span>Calibration: Ready</span></div></div></div><div><span className="eyebrow">STEP 02</span><div className="offline-badge">OFFLINE DEMO / SIMULATED CALIBRATION</div><h3>Reference-card calibration</h3><p className="muted">The reference card provides a colour baseline so the pipeline can compensate for illumination and camera differences. In offline demo mode, this stage is simulated locally to demonstrate the workflow.</p><div className="metrics"><div><strong>{analysis?.quality?.passed ? 'PASS' : '—'}</strong><span>quality gate</span></div><div><strong>{analysis?.reference_card ? 'YES' : '—'}</strong><span>reference card</span></div><div><strong>{analysis?.calibration?.status === 'ready' ? 'READY' : '—'}</strong><span>calibration</span></div></div><div className="demo-case-row"><label><span className="section-label">DEMO TEST CASE</span><select value={demoCase} onChange={(event) => { const key = event.target.value; setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }}><option value="magenta">Pink / magenta → example: Cocaine</option><option value="blue">Blue → example: Amphetamine</option><option value="violet">Purple / violet → example: MDMA</option><option value="green">Green → example: Cannabis</option><option value="yellow">Yellow → example: No significant change</option><option value="inconclusive">Faint / uneven → Inconclusive</option></select></label><div className="demo-case-result"><span>SIMULATED OBSERVATION</span><strong>{analysis?.color_interpretation?.display_name || '—'}</strong><small>{analysis?.color_interpretation?.possible_match || 'Select a demo case'}</small></div></div><div className="notice">Offline demo: this is a synthetic case used to demonstrate the interpretation workflow. The colour and reference-card association are illustrative; a validated kit profile is required for real field interpretation.</div><button className="primary" onClick={next}>Continue to analysis →</button></div></div>}
 
