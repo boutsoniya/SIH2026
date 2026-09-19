@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getEvidence, listEvidence, saveEvidence, syncQueuedEvidence, supportsOfflineStorage } from './offlineQueue';
 import { DEMO_RECORDS } from './demoRecords';
 import { analyzeImage, checkVisionHealth } from './visionApi';
-import { computeRecordHash, sha256Hex, verifyImageBlob, verifyRecord } from './evidenceCrypto';
+import { computeRecordHash, sha256Hex, signEvidenceRecord, verifyImageBlob, verifyRecord, verifySignature } from './evidenceCrypto';
 
 const steps = ['Capture', 'Calibrate', 'Analyze', 'Evidence'];
 const DEMO_CASES = {
@@ -132,6 +132,8 @@ export default function App() {
   const [visionStatus, setVisionStatus] = useState('not checked');
   const [integrityMessage, setIntegrityMessage] = useState('');
   const [demoCase, setDemoCase] = useState('magenta');
+  const [operatorId, setOperatorId] = useState('DEMO-OPERATOR-001');
+  const [locationStatus, setLocationStatus] = useState('not captured');
 
   const queued = useMemo(() => records.filter((record) => ['QUEUED', 'FAILED', 'SYNCING'].includes(record.sync_status)).length, [records]);
   const visibleRecords = useMemo(() => {
@@ -169,32 +171,85 @@ export default function App() {
     } finally { setAnalyzing(false); }
   };
 
+  const captureGps = () => new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      setLocationStatus('unavailable');
+      resolve(null);
+      return;
+    }
+
+    setLocationStatus('capturing');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const gps = {
+          latitude: Number(position.coords.latitude.toFixed(6)),
+          longitude: Number(position.coords.longitude.toFixed(6)),
+          accuracy_m: Number(position.coords.accuracy.toFixed(1)),
+        };
+        setLocationStatus('captured');
+        resolve(gps);
+      },
+      () => {
+        setLocationStatus('permission denied');
+        resolve(null);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
+    );
+  });
+
   const createEvidence = async () => {
+    setIntegrityMessage('Capturing location and sealing the evidence record…');
     const image_sha256 = file ? await sha256Hex(file) : null;
+    const gps = await captureGps();
+
     const baseRecord = {
       test_id: `TEST-DEMO-${Date.now().toString().slice(-6)}`,
-      operator_id: 'DEMO-OPERATOR-001', timestamp: new Date().toISOString(), gps: null,
-      test_type: 'COLORIMETRIC', result: analysis?.result || 'INCONCLUSIVE', confidence: analysis?.confidence ?? null,
-      image_sha256, signature: null, sync_status: 'QUEUED', integrity_status: 'UNVERIFIED',
-      analysis_status: analysis?.status || 'offline_demo', quality: analysis?.quality || null,
+      operator_id: operatorId.trim() || 'UNSPECIFIED-OPERATOR',
+      timestamp: new Date().toISOString(),
+      gps,
+      test_type: 'COLORIMETRIC',
+      result: analysis?.result || 'INCONCLUSIVE',
+      confidence: analysis?.confidence ?? null,
+      image_sha256,
+      signature: null,
+      sync_status: 'QUEUED',
+      integrity_status: 'UNVERIFIED',
+      analysis_status: analysis?.status || 'offline_demo',
+      quality: analysis?.quality || null,
     };
-    const record = { ...baseRecord, record_hash: await computeRecordHash(baseRecord) };
+
+    const record = await signEvidenceRecord(baseRecord);
     await saveEvidence(record, file || null);
-    await refreshQueue(); setIntegrityMessage('Evidence sealed locally: image SHA-256 and deterministic record hash computed in-browser.'); setStep(3);
+
+    const locationNote = gps ? 'GPS captured.' : 'GPS unavailable or permission was denied; record retained with GPS marked unavailable.';
+    const signatureNote = record.signature ? 'ECDSA signature created.' : 'Signature unavailable.';
+    await refreshQueue();
+    setIntegrityMessage(`Evidence sealed locally. Image SHA-256 + record hash + ECDSA signature created. ${locationNote} ${signatureNote}`);
+    setStep(3);
   };
 
   const verifyEvidence = async (record) => {
     setIntegrityMessage('Verifying evidence…');
     try {
       const stored = await getEvidence(record.test_id);
-      const recordCheck = await verifyRecord(stored || record);
-      const imageCheck = stored?.image_blob && stored?.image_sha256 ? await verifyImageBlob(stored.image_blob, stored.image_sha256) : { valid: null, reason: 'image_not_stored' };
-      const valid = recordCheck.valid && (imageCheck.valid !== false);
-      setIntegrityMessage(valid ? `✓ ${record.test_id}: record and captured image hashes match.` : `⚠ ${record.test_id}: integrity check failed — possible tampering or missing evidence image.`);
+      const target = stored || record;
+      const recordCheck = await verifyRecord(target);
+      const signatureCheck = await verifySignature(target);
+      const imageCheck = target?.image_blob && target?.image_sha256 ? await verifyImageBlob(target.image_blob, target.image_sha256) : { valid: null, reason: 'image_not_stored' };
+      const valid = recordCheck.valid && signatureCheck.valid && (imageCheck.valid !== false);
+
+      setIntegrityMessage(
+        valid
+          ? `✓ ${record.test_id}: record hash, image hash and digital signature all verify.`
+          : `⚠ ${record.test_id}: verification failed — review record hash, signature, or captured image.`
+      );
+
       if (valid && stored) {
-        setRecords((current) => current.map((item) => item.test_id === record.test_id ? { ...item, integrity_status: 'VERIFIED' } : item));
+        setRecords((current) => current.map((item) => item.test_id === record.test_id ? { ...item, integrity_status: 'VERIFIED', signature_status: 'SIGNED_VERIFIED' } : item));
       }
-    } catch (error) { setIntegrityMessage(`Verification error: ${error.message}`); }
+    } catch (error) {
+      setIntegrityMessage(`Verification error: ${error.message}`);
+    }
   };
 
   const syncNow = async () => {
@@ -217,7 +272,7 @@ export default function App() {
       <nav className="steps">{steps.map((label, index) => <button key={label} className={index === step ? 'active' : index < step ? 'done' : ''} onClick={() => setStep(index)}><span>{index + 1}</span>{label}</button>)}</nav>
 
       <section className="workspace">
-        {step === 0 && <div className="panel capture"><div className="capture-frame"><div className="guide-card">REFERENCE CARD</div><div className="guide-kit">TEST KIT<br /><small>ALIGN INSIDE FRAME</small></div><div className="crosshair">+</div></div><div className="capture-controls"><div><h3>Guided capture</h3><p className="muted">Select a field image. The vision service will run a quality gate before calibration, ROI extraction and safe inference.</p></div><label className="upload">{file?.name || 'Choose test image'}<input type="file" accept="image/*" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>{analysisError && <div className="notice">{analysisError}</div>}<button className="primary" onClick={runAnalysis} disabled={analyzing}>{analyzing ? 'Analyzing…' : 'Run vision quality gate →'}</button><button className="secondary" onClick={() => { setAnalysis(makeDemoAnalysis(demoCase)); setOffline(true); setAnalysisError(''); setIntegrityMessage('Offline demo: synthetic colour case loaded locally; no server inference was used.'); setStep(1); }}>Use offline demo workflow</button></div></div>}
+        {step === 0 && <div className="panel capture"><div className="capture-frame"><div className="guide-card">REFERENCE CARD</div><div className="guide-kit">TEST KIT<br /><small>ALIGN INSIDE FRAME</small></div><div className="crosshair">+</div></div><div className="capture-controls"><div><h3>Guided capture</h3><p className="muted">Select a field image. The vision service will run a quality gate before calibration, ROI extraction and safe inference.</p></div><label className="upload">{file?.name || 'Choose test image'}<input type="file" accept="image/*" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label><label className="field-input"><span className="section-label">OPERATOR ID</span><input value={operatorId} onChange={(event) => setOperatorId(event.target.value)} placeholder="e.g. OFFICER-042" /></label><div className="location-chip">GPS: {locationStatus === 'captured' ? 'captured on evidence save' : locationStatus}</div>{analysisError && <div className="notice">{analysisError}</div><button className="primary" onClick={runAnalysis} disabled={analyzing}>{analyzing ? 'Analyzing…' : 'Run vision quality gate →'}</button><button className="secondary" onClick={() => { setAnalysis(makeDemoAnalysis(demoCase)); setOffline(true); setAnalysisError(''); setIntegrityMessage('Offline demo: synthetic colour case loaded locally; no server inference was used.'); setStep(1); }}>Use offline demo workflow</button></div></div>}
 
         {step === 1 && <div className="panel split"><div className="calibration-visual"><div className="demo-preview"><div className="demo-preview-head"><span className="live-chip">● OFFLINE DEMO</span><span>SIMULATED CAPTURE</span></div><div className="demo-card"><div className="demo-card-brand">NARCOSCOPE</div><div className="demo-card-title">REFERENCE COLOUR CARD</div><div className="demo-swatches">{['#e4ce75','#e28b6e','#c44876','#8e72b2','#6aa861','#3a9bc4','#7b7f86','#c35a62'].map((c,i)=><span key={i} style={{background:c}} />)}</div></div><div className="demo-test-kit"><div className="kit-brand">NARCOSCOPE</div><div className="kit-window"><span /></div><div className="kit-well" /></div><div className="demo-preview-foot"><span>Image Quality: Good</span><span>Reference: Detected</span><span>Calibration: Ready</span></div></div></div><div><span className="eyebrow">STEP 02</span><div className="offline-badge">OFFLINE DEMO / SIMULATED CALIBRATION</div><h3>Reference-card calibration</h3><p className="muted">The reference card provides a colour baseline so the pipeline can compensate for illumination and camera differences. In offline demo mode, this stage is simulated locally to demonstrate the workflow.</p><div className="metrics"><div><strong>{analysis?.quality?.passed ? 'PASS' : '—'}</strong><span>quality gate</span></div><div><strong>{analysis?.reference_card ? 'YES' : '—'}</strong><span>reference card</span></div><div><strong>{analysis?.calibration?.status === 'ready' ? 'READY' : '—'}</strong><span>calibration</span></div></div><div className="demo-case-row"><label><span className="section-label">DEMO TEST CASE</span><select value={demoCase} onChange={(event) => { const key = event.target.value; setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }}><option value="magenta">Pink / magenta → example: Cocaine</option><option value="blue">Blue → example: Amphetamine</option><option value="violet">Purple / violet → example: MDMA</option><option value="green">Green → example: Cannabis</option><option value="yellow">Yellow → example: No significant change</option><option value="inconclusive">Faint / uneven → Inconclusive</option></select></label><div className="demo-case-result"><span>SIMULATED OBSERVATION</span><strong>{analysis?.color_interpretation?.display_name || '—'}</strong><small>{analysis?.color_interpretation?.possible_match || 'Select a demo case'}</small></div></div><div className="notice">Offline demo: this is a synthetic case used to demonstrate the interpretation workflow. The colour and reference-card association are illustrative; a validated kit profile is required for real field interpretation.</div><button className="primary" onClick={next}>Continue to analysis →</button></div></div>}
 
@@ -279,7 +334,7 @@ export default function App() {
           <button className="primary" onClick={createEvidence}>Create evidence record →</button>
         </div>}
 
-        {step === 3 && <div className="panel evidence"><div className="evidence-heading"><div><span className="eyebrow">COMMAND CENTER</span><h3>Evidence history</h3><p className="muted">Searchable local history for demo records and field-captured evidence.</p></div><button className="sync-button" onClick={syncNow} disabled={syncing || !storageReady}>{syncing ? 'Syncing…' : 'Sync queue'}</button></div><div className="history-toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search test ID, operator, result…" /><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="ALL">All records</option><option value="INCONCLUSIVE">Inconclusive</option><option value="PRESUMPTIVE_POSITIVE">Presumptive positive</option><option value="PRESUMPTIVE_NEGATIVE">Presumptive negative</option><option value="QUEUED">Queued</option><option value="SYNCED">Synced</option><option value="VERIFIED">Integrity verified</option></select></div><div className="history-list">{visibleRecords.length ? visibleRecords.map((record) => <article className="history-row" key={record.test_id}><div><strong>{record.test_id}</strong><span>{record.operator_id} · {new Date(record.timestamp).toLocaleString()}</span></div><div className="history-tags"><span className={`tag result-${record.result.toLowerCase()}`}>{record.result.replaceAll('_', ' ')}</span><span className="tag">{record.integrity_status}</span><span className="tag">{record.sync_status}</span>{record.image_sha256 && <button className="tag verify-tag" onClick={() => verifyEvidence(record)}>Verify</button>}</div></article>) : <div className="empty-state">No evidence records match this search.</div>}</div>{integrityMessage && <div className="notice">{integrityMessage}</div>}<div className="sync-panel"><div><strong>Offline evidence queue</strong><span>Records remain local until sync is confirmed.</span></div><span className="sync-count">{queued} pending</span></div>{lastSync && <p className="sync-note">Last local sync: {lastSync.toLocaleTimeString()}</p>}<button className="primary" onClick={() => setStep(0)}>Start another test ↗</button></div>}
+        {step === 3 && <div className="panel evidence"><div className="evidence-heading"><div><span className="eyebrow">COMMAND CENTER</span><h3>Evidence history</h3><p className="muted">Searchable local history for demo records and field-captured evidence.</p></div><button className="sync-button" onClick={syncNow} disabled={syncing || !storageReady}>{syncing ? 'Syncing…' : 'Sync queue'}</button></div><div className="history-toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search test ID, operator, result…" /><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="ALL">All records</option><option value="INCONCLUSIVE">Inconclusive</option><option value="PRESUMPTIVE_POSITIVE">Presumptive positive</option><option value="PRESUMPTIVE_NEGATIVE">Presumptive negative</option><option value="QUEUED">Queued</option><option value="SYNCED">Synced</option><option value="VERIFIED">Integrity verified</option></select></div><div className="history-list">{visibleRecords.length ? visibleRecords.map((record) => <article className="history-row" key={record.test_id}><div><strong>{record.test_id}</strong><span>{record.operator_id} · {new Date(record.timestamp).toLocaleString()}</span></div><div className="history-tags"><span className={`tag result-${record.result.toLowerCase()}`}>{record.result.replaceAll('_', ' ')}</span><span className="tag">{record.integrity_status}</span><span className="tag">{record.sync_status}</span><span className="tag">{record.signature ? 'SIGNED' : 'UNSIGNED'}</span>{record.gps ? <span className="tag">GPS</span> : <span className="tag">GPS N/A</span>}{record.image_sha256 && <button className="tag verify-tag" onClick={() => verifyEvidence(record)}>Verify</button>}</div></article>) : <div className="empty-state">No evidence records match this search.</div>}</div>{integrityMessage && <div className="notice">{integrityMessage}</div>}<div className="sync-panel"><div><strong>Offline evidence queue</strong><span>Records remain local until sync is confirmed.</span></div><span className="sync-count">{queued} pending</span></div>{lastSync && <p className="sync-note">Last local sync: {lastSync.toLocaleTimeString()}</p>}<button className="primary" onClick={() => setStep(0)}>Start another test ↗</button></div>}
       </section>
     </main>
   );
