@@ -140,6 +140,8 @@ export default function App() {
   const [operatorId, setOperatorId] = useState('DEMO-OPERATOR-001');
   const [testId, setTestId] = useState(() => `TEST-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`);
   const [testKit, setTestKit] = useState('Standard colorimetric field-test profile');
+  const [evidenceBagId, setEvidenceBagId] = useState('BAG-DEMO-2026-001');
+  const [reagentQr, setReagentQr] = useState('{"kit":"DEMO-KIT","lot":"LOT-DEMO-001","expires":"2027-12-31"}');
   const [locationStatus, setLocationStatus] = useState('not captured');
   const [previewUrl, setPreviewUrl] = useState('');
   const [latestEvidence, setLatestEvidence] = useState(null);
@@ -264,7 +266,7 @@ export default function App() {
     if (!file) { setAnalysisError('Choose a test image first.'); return; }
     setAnalyzing(true); setAnalysisError(''); setAnalysis(null); setIntegrityMessage('');
     try {
-      const result = await analyzeImage(file);
+      const result = await analyzeImage(file, { reagentQr, evidenceBagId });
       setAnalysis(result);
       setOffline(false);
       if (result?.status === 'quality_rejected') {
@@ -331,6 +333,12 @@ export default function App() {
       gps,
       test_type: 'COLORIMETRIC',
       test_kit: testKit,
+      evidence_bag_id: evidenceBagId.trim() || null,
+      reagent_qr: reagentQr.trim() || null,
+      reagent: analysis?.reagent || null,
+      anti_spoof: analysis?.anti_spoof || null,
+      calibration: analysis?.calibration || null,
+      color_distance: analysis?.color_distance || null,
       result: analysis?.result || 'INCONCLUSIVE',
       confidence: analysis?.confidence ?? null,
       image_sha256,
@@ -465,7 +473,7 @@ export default function App() {
               <span>1. Reference card visible · 2. Reaction area visible · 3. Avoid glare and blur</span>
             </div>
             {cameraError && <div className="notice">{cameraError}</div>}
-            <div className="setup-grid"><label className="field-input"><span className="section-label">TEST / CASE ID</span><input value={testId} onChange={(event) => setTestId(event.target.value.toUpperCase())} placeholder="TEST-2026-000184" /></label><label className="field-input"><span className="section-label">TEST KIT / PROFILE</span><select value={testKit} onChange={(event) => setTestKit(event.target.value)}><option>Standard colorimetric field-test profile</option><option>Demonstration reference profile</option><option>Validated kit profile (configured)</option></select></label></div>
+            <div className="setup-grid"><label className="field-input"><span className="section-label">TEST / CASE ID</span><input value={testId} onChange={(event) => setTestId(event.target.value.toUpperCase())} placeholder="TEST-2026-000184" /></label><label className="field-input"><span className="section-label">TEST KIT / PROFILE</span><select value={testKit} onChange={(event) => setTestKit(event.target.value)}><option>Standard colorimetric field-test profile</option><option>Demonstration reference profile</option><option>Validated kit profile (configured)</option></select></label><label className="field-input"><span className="section-label">EVIDENCE BAG / BARCODE ID</span><input value={evidenceBagId} onChange={(event) => setEvidenceBagId(event.target.value)} placeholder="BAG-NCB-2026-001" /></label><label className="field-input"><span className="section-label">REAGENT QR PAYLOAD</span><input value={reagentQr} onChange={(event) => setReagentQr(event.target.value)} placeholder='{"kit":"SCOTT","lot":"LOT-123","expires":"2027-06-30"}' /></label></div>
             <label className="field-input"><span className="section-label">OPERATOR ID</span><input value={operatorId} onChange={(event) => setOperatorId(event.target.value)} placeholder="e.g. OFFICER-042" /></label>
             <div className="location-row"><div className={`location-chip location-${locationStatus.replaceAll(' ', '-')} `}>GPS: {locationStatus === 'not captured' ? 'will capture when evidence is saved' : locationStatus}</div><button className="location-test" onClick={testGps} type="button">Test GPS access</button></div>
             {analysisError && <div className="notice">{analysisError}</div>}

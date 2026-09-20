@@ -4,11 +4,13 @@ export function getVisionBaseUrl() {
   return (import.meta.env.VITE_VISION_API_URL || DEFAULT_VISION_URL).replace(/\/$/, '');
 }
 
-export async function analyzeImage(file, { signal } = {}) {
+export async function analyzeImage(file, { signal, reagentQr = '', evidenceBagId = '' } = {}) {
   if (!file) throw new Error('Select a test image before analysis.');
 
   const body = new FormData();
   body.append('image', file, file.name || 'capture.jpg');
+  if (reagentQr) body.append('reagent_qr', reagentQr);
+  if (evidenceBagId) body.append('evidence_bag_id', evidenceBagId);
 
   const response = await fetch(`${getVisionBaseUrl()}/analyze`, {
     method: 'POST',
