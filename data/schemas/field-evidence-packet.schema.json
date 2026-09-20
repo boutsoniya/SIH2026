@@ -1,0 +1,21 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"Field Evidence Packet",
+  "type":"object",
+  "required":["packet_version","packet_type","verification_id","case","integrity","packet_hash"],
+  "properties":{
+    "packet_version":{"type":"string"},
+    "packet_type":{"const":"FIELD_EVIDENCE_PACKET"},
+    "generated_at":{"type":"string","format":"date-time"},
+    "verification_id":{"type":"string"},
+    "case":{"type":"object"},
+    "acquisition":{"type":"object"},
+    "analytical_chain":{"type":"object"},
+    "integrity":{"type":"object"},
+    "chain_of_custody":{"type":"array"},
+    "fsl_reconciliation":{"type":"object"},
+    "audit":{"type":"object"},
+    "packet_hash":{"type":"string","pattern":"^[a-f0-9]{64}$"}
+  },
+  "additionalProperties":true
+}
