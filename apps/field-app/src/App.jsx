@@ -391,6 +391,7 @@ export default function App() {
       reagent_qr: reagentQr.trim() || null,
       reagent: analysis?.reagent || null,
       card_geometry: analysis?.card_geometry || null,
+      aruco: analysis?.aruco || null,
       anti_spoof: analysis?.anti_spoof || null,
       calibration: analysis?.calibration || null,
       color_distance: analysis?.color_distance || null,

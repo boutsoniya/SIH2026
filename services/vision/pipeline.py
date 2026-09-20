@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 from anti_spoof import screen_spoof_signal
+from aruco import detect_aruco_markers
 from calibration import calibrate_from_reference, detect_reference_card
 from ciede2000 import compare_to_reference
 from features import extract_color_features
@@ -31,11 +32,14 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
         }
 
     quality = quality_gate(image)
+    aruco = detect_aruco_markers(image)
     supplied_geometry = validate_card_geometry(card_geometry, image.shape) if card_geometry else {"valid": False, "status": "not_supplied"}
     reference = detect_reference_card(image)
     reference_box = polygon_box(reference)
     reference_check = validate_reference(reference_box, image.shape)
     if supplied_geometry.get("valid"):
+        if aruco.get("verified"):
+            supplied_geometry["source"] = "aruco_verified"
         reference_check = {"usable": True, "reason": "Validated capture geometry supplied."}
         reference_box = [int(min(p[0] for p in supplied_geometry["card_corners"])), int(min(p[1] for p in supplied_geometry["card_corners"])), int(max(p[0] for p in supplied_geometry["card_corners"]) - min(p[0] for p in supplied_geometry["card_corners"])), int(max(p[1] for p in supplied_geometry["card_corners"]) - min(p[1] for p in supplied_geometry["card_corners"]))]
     quality["reference_card"] = reference_check
@@ -68,9 +72,11 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
             "quality": quality,
             "reference_card": reference_box,
             "anti_spoof": spoof,
+            "aruco": aruco,
             "reagent": reagent,
             "evidence_bag_id": evidence_bag_id,
             "card_geometry": supplied_geometry,
+            "aruco": aruco,
             "calibration": {"status": "blocked", "method": "reference_card"},
             "roi": None,
             "features": None,
