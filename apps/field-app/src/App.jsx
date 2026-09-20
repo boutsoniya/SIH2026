@@ -142,6 +142,7 @@ export default function App() {
   const [testKit, setTestKit] = useState('Standard colorimetric field-test profile');
   const [locationStatus, setLocationStatus] = useState('not captured');
   const [previewUrl, setPreviewUrl] = useState('');
+  const [latestEvidence, setLatestEvidence] = useState(null);
 
   const demoPalette = [
     { key: 'yellow', label: 'Yellow', hex: DEMO_CASES.yellow.hex },
@@ -156,7 +157,7 @@ export default function App() {
   const visibleRecords = useMemo(() => {
     const query = search.trim().toLowerCase();
     return records.filter((record) => {
-      const matchesSearch = !query || `${record.test_id} ${record.operator_id} ${record.result} ${record.sync_status}`.toLowerCase().includes(query);
+      const matchesSearch = !query || `${record.test_id} ${record.operator_id} ${record.test_kit || ''} ${record.result} ${record.sync_status}`.toLowerCase().includes(query);
       const matchesFilter = filter === 'ALL' || record.result === filter || record.sync_status === filter || record.integrity_status === filter;
       return matchesSearch && matchesFilter;
     });
@@ -342,6 +343,7 @@ export default function App() {
 
     const record = await signEvidenceRecord(baseRecord);
     await saveEvidence(record, file || null);
+    setLatestEvidence(record);
 
     const locationNote = gps ? 'GPS captured.' : 'GPS unavailable or permission was denied; record retained with GPS marked unavailable.';
     const signatureNote = record.signature ? 'ECDSA signature created.' : 'Signature unavailable.';
@@ -563,6 +565,17 @@ export default function App() {
             <div><span className="section-label">WHAT DOES THIS MEAN?</span><strong>{analysis?.color_interpretation?.display_name || 'Observed reaction'} is what the camera measured in the reaction area.</strong><p>{analysis?.color_interpretation?.plain_meaning || 'Compare the observed colour with the physical reference card for the selected test kit.'} Do not treat colour alone as a confirmed identification.</p></div>
           </div>
 
+          <div className="analysis-basis">
+            <div className="section-header-row"><div><span className="section-label">HOW THIS RESULT WAS DERIVED</span><strong>{analysis?.status === 'offline_demo' ? 'Demonstration pathway' : 'Vision pipeline pathway'}</strong></div><span className="selection-status">{analysis?.status === 'offline_demo' ? 'SIMULATED' : 'REVIEWABLE'}</span></div>
+            <div className="basis-grid">
+              <div><b>{analysis?.quality?.passed ? '✓' : '!'}</b><span>Image quality<br /><small>{analysis?.quality?.passed ? 'meets gate' : 'requires review'}</small></span></div>
+              <div><b>{analysis?.reference_card ? '✓' : '!'}</b><span>Reference card<br /><small>{analysis?.reference_card ? 'candidate detected' : 'not detected'}</small></span></div>
+              <div><b>{analysis?.calibration?.status === 'ready' ? '✓' : '!'}</b><span>Calibration<br /><small>{analysis?.calibration?.status || 'review needed'}</small></span></div>
+              <div><b>{analysis?.roi ? '✓' : '!'}</b><span>Reaction area<br /><small>{analysis?.roi ? 'ROI detected' : 'not detected'}</small></span></div>
+              <div><b>{analysis?.features?.features ? '✓' : '!'}</b><span>Colour features<br /><small>{analysis?.features?.features ? 'HSV / LAB measured' : 'not available'}</small></span></div>
+            </div>
+          </div>
+
           <div className="next-action">
             <span className="section-label">RECOMMENDED NEXT STEP</span>
             <strong>{analysis?.result === 'INCONCLUSIVE' ? 'Compare the observed colour with the kit reference card, then confirm presumptive findings through the prescribed laboratory workflow.' : 'Record the presumptive result and retain the original image and evidence metadata for verification.'}</strong>
@@ -573,7 +586,20 @@ export default function App() {
           <button className="primary" onClick={createEvidence}>Create evidence record →</button>
         </div>}
 
-        {step === 3 && <div className="panel evidence"><div className="evidence-heading"><div><span className="eyebrow">COMMAND CENTER</span><h3>Evidence history</h3><p className="muted">Searchable local history for demo records and field-captured evidence.</p></div><button className="sync-button" onClick={syncNow} disabled={syncing || !storageReady}>{syncing ? 'Syncing…' : 'Sync queue'}</button></div><div className="history-toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search test ID, operator, result…" /><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="ALL">All records</option><option value="INCONCLUSIVE">Inconclusive</option><option value="PRESUMPTIVE_POSITIVE">Presumptive positive</option><option value="PRESUMPTIVE_NEGATIVE">Presumptive negative</option><option value="QUEUED">Queued</option><option value="SYNCED">Synced</option><option value="VERIFIED">Integrity verified</option></select></div><div className="history-list">{visibleRecords.length ? visibleRecords.map((record) => <article className="history-row" key={record.test_id}><div><strong>{record.test_id}</strong><span>{record.operator_id} · {record.test_kit || 'Colorimetric profile'} · {new Date(record.timestamp).toLocaleString()}</span></div><div className="history-tags"><span className={`tag result-${record.result.toLowerCase()}`}>{record.result.replaceAll('_', ' ')}</span><span className="tag">{record.integrity_status}</span><span className="tag">{record.sync_status}</span><span className="tag">{record.signature ? 'SIGNED' : 'UNSIGNED'}</span>{record.gps ? <span className="tag">GPS</span> : <span className="tag">GPS N/A</span>}{record.image_sha256 && <button className="tag verify-tag" onClick={() => verifyEvidence(record)}>Verify</button>}</div></article>) : <div className="empty-state">No evidence records match this search.</div>}</div>{integrityMessage && <div className="notice">{integrityMessage}</div>}<div className="sync-panel"><div><strong>Offline evidence queue</strong><span>Records remain local until sync is confirmed.</span></div><span className="sync-count">{queued} pending</span></div>{lastSync && <p className="sync-note">Last local sync: {lastSync.toLocaleTimeString()}</p>}<button className="primary" onClick={() => setStep(0)}>Start another test ↗</button></div>}
+        {step === 3 && <div className="panel evidence"><div className="evidence-heading"><div><span className="eyebrow">COMMAND CENTER</span><h3>Evidence history</h3><p className="muted">Searchable local history for demo records and field-captured evidence.</p></div><button className="sync-button" onClick={syncNow} disabled={syncing || !storageReady}>{syncing ? 'Syncing…' : 'Sync queue'}</button></div><div className="history-toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search test ID, operator, result…" /><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="ALL">All records</option><option value="INCONCLUSIVE">Inconclusive</option><option value="PRESUMPTIVE_POSITIVE">Presumptive positive</option><option value="PRESUMPTIVE_NEGATIVE">Presumptive negative</option><option value="QUEUED">Queued</option><option value="SYNCED">Synced</option><option value="VERIFIED">Integrity verified</option></select></div><div className="history-list">{visibleRecords.length ? visibleRecords.map((record) => <article className="history-row" key={record.test_id}><div><strong>{record.test_id}</strong><span>{record.operator_id} · {record.test_kit || 'Colorimetric profile'} · {new Date(record.timestamp).toLocaleString()}</span></div><div className="history-tags"><span className={`tag result-${record.result.toLowerCase()}`}>{record.result.replaceAll('_', ' ')}</span><span className="tag">{record.integrity_status}</span><span className="tag">{record.sync_status}</span><span className="tag">{record.signature ? 'SIGNED' : 'UNSIGNED'}</span>{record.gps ? <span className="tag">GPS</span> : <span className="tag">GPS N/A</span>}{record.image_sha256 && <button className="tag verify-tag" onClick={() => verifyEvidence(record)}>Verify</button>}</div></article>) : <div className="empty-state">No evidence records match this search.</div>}</div>{integrityMessage && <div className="notice">{integrityMessage}</div>}{latestEvidence && <div className="evidence-certificate">
+  <div className="certificate-top"><div><span className="eyebrow">SEALED TEST RECORD</span><h4>{latestEvidence.test_id}</h4></div><span className="verified-pill">SIGNED</span></div>
+  <div className="certificate-grid">
+    <div><span>Operator</span><strong>{latestEvidence.operator_id}</strong></div>
+    <div><span>Test kit</span><strong>{latestEvidence.test_kit || 'Colorimetric profile'}</strong></div>
+    <div><span>Date / time</span><strong>{new Date(latestEvidence.timestamp).toLocaleString()}</strong></div>
+    <div><span>GPS</span><strong>{latestEvidence.gps ? latestEvidence.gps.latitude + ', ' + latestEvidence.gps.longitude : 'Unavailable'}</strong></div>
+    <div><span>Image SHA-256</span><strong>{latestEvidence.image_sha256 ? latestEvidence.image_sha256.slice(0,16) + '…' : 'Not available'}</strong></div>
+    <div><span>Record hash</span><strong>{latestEvidence.record_hash ? latestEvidence.record_hash.slice(0,16) + '…' : 'Not available'}</strong></div>
+  </div>
+  <div className="certificate-status"><span>Integrity chain</span><strong>Image hash · Record hash · ECDSA signature</strong><button className="location-test" onClick={() => verifyEvidence(latestEvidence)} type="button">Verify sealed record</button><button className="location-test danger-test" onClick={async () => { const tampered={...latestEvidence, operator_id: latestEvidence.operator_id + '-CHANGED'}; const a=await verifyRecord(tampered); const b=await verifySignature(tampered); setIntegrityMessage(a.valid && b.valid ? 'Unexpected: tampered copy still verified.' : 'Tamper simulation: the modified copy failed integrity verification. Original sealed record was not changed.'); }} type="button">Simulate tamper</button></div>
+</div>}
+
+<div className="sync-panel"><div><strong>Offline evidence queue</strong><span>Records remain local until sync is confirmed.</span></div><span className="sync-count">{queued} pending</span></div>{lastSync && <p className="sync-note">Last local sync: {lastSync.toLocaleTimeString()}</p>}<button className="primary" onClick={() => setStep(0)}>Start another test ↗</button></div>}
       </section>
     </main>
   );
