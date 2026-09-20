@@ -69,6 +69,46 @@
         "null"
       ]
     },
+    "card_geometry": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "valid": { "type": "boolean" },
+        "source": { "type": "string" },
+        "coordinate_space": { "type": "string" },
+        "card_corners": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "homography": {
+          "type": "array",
+          "items": { "type": "array", "items": { "type": "number" } },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "normalized_size": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "reaction_roi": {
+          "type": ["array", "null"],
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      }
+    },
     "quality": {
       "type": [
         "object",

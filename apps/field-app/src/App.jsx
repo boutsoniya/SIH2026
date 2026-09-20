@@ -141,7 +141,7 @@ export default function App() {
   const cameraStreamRef = useRef(null);
   const cameraCanvasRef = useRef(null);
   const [captureCoach, setCaptureCoach] = useState({ status: 'WAITING', score: 0, checks: { brightness: false, contrast: false, sharpness: false, stability: false }, tips: ['Start the camera and hold the device steady.'] });
-  const [cardLock, setCardLock] = useState({ cardDetected: false, perspectiveOk: false, reactionAreaOk: false, calibrationReady: false, score: 0, message: 'Waiting for the reference card…', corners: [], reactionRoi: null });
+  const [cardLock, setCardLock] = useState({ cardDetected: false, perspectiveOk: false, reactionAreaOk: false, calibrationReady: false, score: 0, message: 'Waiting for the reference card…', corners: [], reactionRoi: null, frameSize: { width: 320, height: 180 } });
   const [operatorId, setOperatorId] = useState('DEMO-OPERATOR-001');
   const [testId, setTestId] = useState(() => `TEST-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`);
   const [testKit, setTestKit] = useState('Standard colorimetric field-test profile');
@@ -195,7 +195,7 @@ export default function App() {
       setCameraOpen(true);
       setCameraActive(true);
       setCaptureCoach({ status: 'CHECKING', score: 0, checks: { brightness: false, contrast: false, sharpness: false, stability: false }, tips: ['Checking live image quality…'] });
-      setCardLock({ cardDetected: false, perspectiveOk: false, reactionAreaOk: false, calibrationReady: false, score: 0, message: 'Searching for the reference card…', corners: [], reactionRoi: null });
+      setCardLock({ cardDetected: false, perspectiveOk: false, reactionAreaOk: false, calibrationReady: false, score: 0, message: 'Searching for the reference card…', corners: [], reactionRoi: null, frameSize: { width: 320, height: 180 } });
       requestAnimationFrame(() => {
         if (cameraVideoRef.current) {
           cameraVideoRef.current.srcObject = stream;
@@ -308,7 +308,19 @@ export default function App() {
     if (!file) { setAnalysisError('Choose a test image first.'); return; }
     setAnalyzing(true); setAnalysisError(''); setAnalysis(null); setIntegrityMessage('');
     try {
-      const result = await analyzeImage(file, { reagentQr, evidenceBagId });
+      const frame = cardLock.frameSize || { width: 320, height: 180 };
+      const cardGeometry = cardLock.calibrationReady && cardLock.corners?.length === 4 ? {
+        source: 'browser_guidance',
+        coordinate_space: 'normalized',
+        card_corners: cardLock.corners.map((point) => [point.x / frame.width, point.y / frame.height]),
+        reaction_roi: cardLock.reactionRoi ? {
+          x: cardLock.reactionRoi.x / frame.width,
+          y: cardLock.reactionRoi.y / frame.height,
+          width: cardLock.reactionRoi.width / frame.width,
+          height: cardLock.reactionRoi.height / frame.height,
+        } : null,
+      } : null;
+      const result = await analyzeImage(file, { reagentQr, evidenceBagId, cardGeometry });
       setAnalysis(result);
       setOffline(false);
       if (result?.status === 'quality_rejected') {
@@ -378,6 +390,7 @@ export default function App() {
       evidence_bag_id: evidenceBagId.trim() || null,
       reagent_qr: reagentQr.trim() || null,
       reagent: analysis?.reagent || null,
+      card_geometry: analysis?.card_geometry || null,
       anti_spoof: analysis?.anti_spoof || null,
       calibration: analysis?.calibration || null,
       color_distance: analysis?.color_distance || null,
