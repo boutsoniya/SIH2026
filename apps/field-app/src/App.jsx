@@ -138,6 +138,8 @@ export default function App() {
   const [cameraActive, setCameraActive] = useState(false);
   const cameraVideoRef = useRef(null);
   const cameraStreamRef = useRef(null);
+  const cameraCanvasRef = useRef(null);
+  const [captureCoach, setCaptureCoach] = useState({ status: 'WAITING', score: 0, checks: { brightness: false, contrast: false, sharpness: false, stability: false }, tips: ['Start the camera and hold the device steady.'] });
   const [operatorId, setOperatorId] = useState('DEMO-OPERATOR-001');
   const [testId, setTestId] = useState(() => `TEST-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`);
   const [testKit, setTestKit] = useState('Standard colorimetric field-test profile');
@@ -190,6 +192,7 @@ export default function App() {
       cameraStreamRef.current = stream;
       setCameraOpen(true);
       setCameraActive(true);
+      setCaptureCoach({ status: 'CHECKING', score: 0, checks: { brightness: false, contrast: false, sharpness: false, stability: false }, tips: ['Checking live image quality…'] });
       requestAnimationFrame(() => {
         if (cameraVideoRef.current) {
           cameraVideoRef.current.srcObject = stream;
@@ -201,6 +204,34 @@ export default function App() {
       setCameraOpen(false);
       setCameraActive(false);
     }
+  };
+
+  const evaluateLiveFrame = () => {
+    const video = cameraVideoRef.current;
+    if (!video || video.readyState < 2 || !video.videoWidth) return;
+    const canvas = cameraCanvasRef.current || document.createElement('canvas');
+    cameraCanvasRef.current = canvas;
+    const width = 320; const height = Math.max(180, Math.round((video.videoHeight / video.videoWidth) * width));
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true }); if (!ctx) return;
+    ctx.drawImage(video, 0, 0, width, height);
+    const data = ctx.getImageData(0, 0, width, height).data; const gray = new Float32Array(width * height);
+    let sum = 0, sumSq = 0, edges = 0, glare = 0;
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4; const g = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      gray[y * width + x] = g; sum += g; sumSq += g * g;
+      if (data[i] > 248 && data[i + 1] > 248 && data[i + 2] > 248) glare++;
+    }
+    const n = width * height; const mean = sum / n; const variance = Math.max(0, sumSq / n - mean * mean);
+    for (let y = 1; y < height; y++) for (let x = 1; x < width; x++) edges += Math.abs(gray[y * width + x] - gray[y * width + x - 1]) + Math.abs(gray[y * width + x] - gray[(y - 1) * width + x]);
+    const brightness = mean >= 45 && mean <= 215; const contrast = variance >= 350; const sharpness = edges / n >= 9; const glareOk = glare / n < 0.12;
+    const passed = brightness && contrast && sharpness && glareOk; const tips = [];
+    if (!brightness) tips.push(mean < 45 ? 'Too dark — move to brighter, even light.' : 'Too bright — avoid direct light on the reaction.');
+    if (!contrast) tips.push('Low contrast — keep the reaction and reference card clearly visible.');
+    if (!sharpness) tips.push('Hold steady — image appears soft or blurred.');
+    if (!glareOk) tips.push('Glare detected — tilt the phone or reagent slightly.');
+    if (!tips.length) tips.push('Capture conditions look stable. Keep the reference card and reaction area aligned.');
+    setCaptureCoach({ status: passed ? 'READY' : 'ADJUST', score: Math.round(([brightness, contrast, sharpness, glareOk].filter(Boolean).length / 4) * 100), checks: { brightness, contrast, sharpness, stability: glareOk }, tips });
   };
 
   const captureFromCamera = () => {
@@ -235,6 +266,11 @@ export default function App() {
     }, 'image/jpeg', 0.92);
   };
 
+  useEffect(() => {
+    if (!cameraOpen || !cameraActive) return undefined;
+    const timer = window.setInterval(evaluateLiveFrame, 650);
+    return () => window.clearInterval(timer);
+  }, [cameraOpen, cameraActive]);
   useEffect(() => () => stopCamera(), []);
 
   useEffect(() => {
@@ -448,7 +484,8 @@ export default function App() {
           </div>
           <div className="camera-sheet-actions">
             <button className="secondary" onClick={() => { stopCamera(); setCameraOpen(false); }}>Cancel</button>
-            <button className="primary" onClick={captureFromCamera} disabled={!cameraActive}>Capture image</button>
+            <div className="live-coach"><div className="live-coach-head"><span className="section-label">LIVE CAPTURE COACH</span><strong className={captureCoach.status === 'READY' ? 'coach-ready' : 'coach-adjust'}>{captureCoach.status} · {captureCoach.score}/100</strong></div><div className="coach-checks"><span className={captureCoach.checks.brightness ? 'ok' : ''}>Brightness</span><span className={captureCoach.checks.contrast ? 'ok' : ''}>Contrast</span><span className={captureCoach.checks.sharpness ? 'ok' : ''}>Sharpness</span><span className={captureCoach.checks.stability ? 'ok' : ''}>Glare / stability</span></div><div className="coach-tips">{captureCoach.tips.map((tip) => <div key={tip}>• {tip}</div>)}</div></div>
+            <button className="primary" onClick={captureFromCamera} disabled={!cameraActive || captureCoach.status !== 'READY'}>{captureCoach.status === 'READY' ? 'Capture image' : 'Adjust to capture'}</button>
           </div>
         </div>
       </div>}
