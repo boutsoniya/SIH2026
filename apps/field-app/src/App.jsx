@@ -93,7 +93,7 @@ function makeDemoAnalysis(key) {
     model_status: 'simulated',
     result: demo.outcome,
     confidence: null,
-    quality: { passed: true },
+    quality: { passed: true, width: 1280, height: 720, brightness: 126.4, sharpness: 248.7, checks: { resolution: true, brightness: true, sharpness: true } },
     reference_card: [0, 0, 1, 1],
     calibration: { status: 'ready', method: 'offline_demo' },
     roi: [0, 0, 1, 1],
@@ -138,7 +138,10 @@ export default function App() {
   const cameraVideoRef = useRef(null);
   const cameraStreamRef = useRef(null);
   const [operatorId, setOperatorId] = useState('DEMO-OPERATOR-001');
+  const [testId, setTestId] = useState(() => `TEST-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`);
+  const [testKit, setTestKit] = useState('Standard colorimetric field-test profile');
   const [locationStatus, setLocationStatus] = useState('not captured');
+  const [previewUrl, setPreviewUrl] = useState('');
 
   const demoPalette = [
     { key: 'yellow', label: 'Yellow', hex: DEMO_CASES.yellow.hex },
@@ -228,6 +231,13 @@ export default function App() {
 
   useEffect(() => () => stopCamera(), []);
 
+  useEffect(() => {
+    if (!file) { setPreviewUrl(''); return undefined; }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
   const startOfflineDemo = () => {
     setDemoCase('');
     setAnalysis(null);
@@ -256,7 +266,12 @@ export default function App() {
       const result = await analyzeImage(file);
       setAnalysis(result);
       setOffline(false);
-      setStep(2);
+      if (result?.status === 'quality_rejected') {
+        setAnalysisError(result.next_action || 'Quality gate halted the workflow. Recapture with better framing and lighting.');
+        setStep(0);
+        return;
+      }
+      setStep(1);
     } catch (error) {
       setAnalysisError(`${error.message} You can continue with the offline workflow and create an INCONCLUSIVE record.`);
       setOffline(true);
@@ -309,11 +324,12 @@ export default function App() {
     const gps = await captureGps();
 
     const baseRecord = {
-      test_id: `TEST-DEMO-${Date.now().toString().slice(-6)}`,
+      test_id: testId.trim() || `TEST-${Date.now().toString().slice(-6)}`,
       operator_id: operatorId.trim() || 'UNSPECIFIED-OPERATOR',
       timestamp: new Date().toISOString(),
       gps,
       test_type: 'COLORIMETRIC',
+      test_kit: testKit,
       result: analysis?.result || 'INCONCLUSIVE',
       confidence: analysis?.confidence ?? null,
       image_sha256,
@@ -430,6 +446,7 @@ export default function App() {
               <span>1. Reference card visible · 2. Reaction area visible · 3. Avoid glare and blur</span>
             </div>
             {cameraError && <div className="notice">{cameraError}</div>}
+            <div className="setup-grid"><label className="field-input"><span className="section-label">TEST / CASE ID</span><input value={testId} onChange={(event) => setTestId(event.target.value.toUpperCase())} placeholder="TEST-2026-000184" /></label><label className="field-input"><span className="section-label">TEST KIT / PROFILE</span><select value={testKit} onChange={(event) => setTestKit(event.target.value)}><option>Standard colorimetric field-test profile</option><option>Demonstration reference profile</option><option>Validated kit profile (configured)</option></select></label></div>
             <label className="field-input"><span className="section-label">OPERATOR ID</span><input value={operatorId} onChange={(event) => setOperatorId(event.target.value)} placeholder="e.g. OFFICER-042" /></label>
             <div className="location-row"><div className={`location-chip location-${locationStatus.replaceAll(' ', '-')} `}>GPS: {locationStatus === 'not captured' ? 'will capture when evidence is saved' : locationStatus}</div><button className="location-test" onClick={testGps} type="button">Test GPS access</button></div>
             {analysisError && <div className="notice">{analysisError}</div>}
@@ -441,22 +458,23 @@ export default function App() {
         {step === 1 && <div className="panel split">
           <div className="calibration-visual">
             <div className="demo-preview">
-              <div className="demo-preview-head"><span className="live-chip">● OFFLINE DEMO</span><span>REFERENCE CARD VIEW</span></div>
+              <div className="demo-preview-head"><span className={offline ? "live-chip" : "live-chip live-chip-live"}>● {offline ? "OFFLINE DEMO" : "LIVE CAPTURE"}</span><span>{offline ? "REFERENCE CARD VIEW" : "CAPTURED IMAGE"}</span></div>
               <div className="demo-card">
                 <div className="demo-card-brand">NARCOSCOPE</div>
                 <div className="demo-card-title">REFERENCE COLOUR CARD</div>
                 <div className="demo-swatches">{demoPalette.map(({ key, hex }) => <button type="button" key={key} className={demoCase === key ? 'demo-swatch selected' : 'demo-swatch'} style={{ background: hex }} onClick={() => { setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }} aria-label={`Select ${DEMO_CASES[key].display_name}`} />)}</div>
               </div>
               <div className="demo-test-kit"><div className="kit-brand">NARCOSCOPE</div><div className="kit-window">{demoCase ? <span style={{ background: DEMO_CASES[demoCase].hex }} /> : <span className="unselected-dot" />}</div><div className="kit-well" /></div>
-              <div className="demo-preview-foot"><span>Image quality: Good</span><span>Card: Detected</span><span>Colour match: {demoCase ? 'Selected' : 'Waiting'}</span></div>
+              <div className="demo-preview-foot">{offline ? <><span>Image quality: Good</span><span>Card: Detected</span><span>Colour match: {demoCase ? 'Selected' : 'Waiting'}</span></> : <><span>Image quality: {analysis?.quality?.passed ? 'Pass' : 'Review'}</span><span>Card: {analysis?.reference_card ? 'Detected' : 'Review'}</span><span>ROI: {analysis?.roi ? 'Detected' : 'Review'}</span></>}</div>
             </div>
           </div>
           <div>
             <span className="eyebrow">STEP 02</span>
             <div className="offline-badge">OFFLINE DEMO / SIMULATED CALIBRATION</div>
             <h3>Match the reaction colour</h3>
-            <p className="muted">Look at the reaction area and tap the closest matching colour on the reference card. Start with the observed colour — the app will explain the associated example after selection.</p>
+            <p className="muted">{offline ? "Look at the reaction area and tap the closest matching colour on the reference card. Start with the observed colour — the app will explain the associated example after selection." : "Review the image-quality gate, reference-card detection and reaction ROI before continuing to the presumptive result."}</p>
 
+            {!offline && <div className="quality-summary"><div><span className="section-label">IMAGE</span><strong>{analysis?.quality?.width || '—'} × {analysis?.quality?.height || '—'}</strong><small>resolution</small></div><div><span className="section-label">BRIGHTNESS</span><strong>{analysis?.quality?.brightness ?? '—'}</strong><small>mean intensity</small></div><div><span className="section-label">SHARPNESS</span><strong>{analysis?.quality?.sharpness ?? '—'}</strong><small>Laplacian variance</small></div><div><span className="section-label">CALIBRATION</span><strong>{analysis?.calibration?.status || '—'}</strong><small>reference baseline</small></div></div>}
             <div className="professional-section">
               <div className="section-header-row"><div><span className="section-label">1 · SELECT OBSERVED COLOUR</span><strong>{demoCase ? DEMO_CASES[demoCase].display_name : 'Nothing selected yet'}</strong></div><span className="selection-status">{demoCase ? 'MATCHED' : 'SELECT ONE'}</span></div>
               <div className="colour-choice-grid">{demoPalette.map(({ key, label, hex }) => <button type="button" key={key} className={demoCase === key ? 'colour-choice selected' : 'colour-choice'} onClick={() => { setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }}><span className="choice-swatch" style={{ background: hex }} /><span>{label}</span>{demoCase === key && <span className="choice-check">✓</span>}</button>)}</div>
@@ -535,7 +553,7 @@ export default function App() {
           <button className="primary" onClick={createEvidence}>Create evidence record →</button>
         </div>}
 
-        {step === 3 && <div className="panel evidence"><div className="evidence-heading"><div><span className="eyebrow">COMMAND CENTER</span><h3>Evidence history</h3><p className="muted">Searchable local history for demo records and field-captured evidence.</p></div><button className="sync-button" onClick={syncNow} disabled={syncing || !storageReady}>{syncing ? 'Syncing…' : 'Sync queue'}</button></div><div className="history-toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search test ID, operator, result…" /><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="ALL">All records</option><option value="INCONCLUSIVE">Inconclusive</option><option value="PRESUMPTIVE_POSITIVE">Presumptive positive</option><option value="PRESUMPTIVE_NEGATIVE">Presumptive negative</option><option value="QUEUED">Queued</option><option value="SYNCED">Synced</option><option value="VERIFIED">Integrity verified</option></select></div><div className="history-list">{visibleRecords.length ? visibleRecords.map((record) => <article className="history-row" key={record.test_id}><div><strong>{record.test_id}</strong><span>{record.operator_id} · {new Date(record.timestamp).toLocaleString()}</span></div><div className="history-tags"><span className={`tag result-${record.result.toLowerCase()}`}>{record.result.replaceAll('_', ' ')}</span><span className="tag">{record.integrity_status}</span><span className="tag">{record.sync_status}</span><span className="tag">{record.signature ? 'SIGNED' : 'UNSIGNED'}</span>{record.gps ? <span className="tag">GPS</span> : <span className="tag">GPS N/A</span>}{record.image_sha256 && <button className="tag verify-tag" onClick={() => verifyEvidence(record)}>Verify</button>}</div></article>) : <div className="empty-state">No evidence records match this search.</div>}</div>{integrityMessage && <div className="notice">{integrityMessage}</div>}<div className="sync-panel"><div><strong>Offline evidence queue</strong><span>Records remain local until sync is confirmed.</span></div><span className="sync-count">{queued} pending</span></div>{lastSync && <p className="sync-note">Last local sync: {lastSync.toLocaleTimeString()}</p>}<button className="primary" onClick={() => setStep(0)}>Start another test ↗</button></div>}
+        {step === 3 && <div className="panel evidence"><div className="evidence-heading"><div><span className="eyebrow">COMMAND CENTER</span><h3>Evidence history</h3><p className="muted">Searchable local history for demo records and field-captured evidence.</p></div><button className="sync-button" onClick={syncNow} disabled={syncing || !storageReady}>{syncing ? 'Syncing…' : 'Sync queue'}</button></div><div className="history-toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search test ID, operator, result…" /><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="ALL">All records</option><option value="INCONCLUSIVE">Inconclusive</option><option value="PRESUMPTIVE_POSITIVE">Presumptive positive</option><option value="PRESUMPTIVE_NEGATIVE">Presumptive negative</option><option value="QUEUED">Queued</option><option value="SYNCED">Synced</option><option value="VERIFIED">Integrity verified</option></select></div><div className="history-list">{visibleRecords.length ? visibleRecords.map((record) => <article className="history-row" key={record.test_id}><div><strong>{record.test_id}</strong><span>{record.operator_id} · {record.test_kit || 'Colorimetric profile'} · {new Date(record.timestamp).toLocaleString()}</span></div><div className="history-tags"><span className={`tag result-${record.result.toLowerCase()}`}>{record.result.replaceAll('_', ' ')}</span><span className="tag">{record.integrity_status}</span><span className="tag">{record.sync_status}</span><span className="tag">{record.signature ? 'SIGNED' : 'UNSIGNED'}</span>{record.gps ? <span className="tag">GPS</span> : <span className="tag">GPS N/A</span>}{record.image_sha256 && <button className="tag verify-tag" onClick={() => verifyEvidence(record)}>Verify</button>}</div></article>) : <div className="empty-state">No evidence records match this search.</div>}</div>{integrityMessage && <div className="notice">{integrityMessage}</div>}<div className="sync-panel"><div><strong>Offline evidence queue</strong><span>Records remain local until sync is confirmed.</span></div><span className="sync-count">{queued} pending</span></div>{lastSync && <p className="sync-note">Last local sync: {lastSync.toLocaleTimeString()}</p>}<button className="primary" onClick={() => setStep(0)}>Start another test ↗</button></div>}
       </section>
     </main>
   );
