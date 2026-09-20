@@ -32,3 +32,12 @@ export async function checkVisionHealth() {
   if (!response.ok) throw new Error(`Vision service returned HTTP ${response.status}`);
   return response.json();
 }
+
+
+export async function syncEvidence(record, baseUrl = "") {
+  const response = await fetch(`${baseUrl}/api/evidence/sync`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(record)
+  });
+  if (!response.ok) throw new Error("Evidence sync failed");
+  return response.json();
+}
