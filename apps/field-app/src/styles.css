@@ -109,3 +109,6 @@ h3 { color:#183b36; }
 @media(max-width:760px){.colour-choice-grid{grid-template-columns:1fr}.demo-swatches{gap:7px}}
 
 .interpretation-warning{display:inline-block;margin-top:6px;padding:6px 8px;border:1px solid #d8c7a6;background:#fbf6e9;color:#7a6740;border-radius:7px;font-size:10px;font-weight:800;letter-spacing:.04em}
+
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.setup-grid .field-input{margin:0}.field-input select{width:100%;box-sizing:border-box;border:1px solid #cbd2cc;background:#fffdf8;color:#334944;padding:11px 12px;border-radius:8px;outline:none}.quality-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.quality-summary>div{border:1px solid #d1d8d2;background:#faf9f4;border-radius:9px;padding:12px}.quality-summary strong{display:block;margin-top:4px;color:#234940;font-size:15px}.quality-summary small{display:block;margin-top:3px;color:#77847f;font-size:10px}.live-chip-live{color:#255f50!important;background:#edf6f1!important;border-color:#9bbcaf!important}
+@media(max-width:760px){.setup-grid{grid-template-columns:1fr}.quality-summary{grid-template-columns:repeat(2,1fr)}}
