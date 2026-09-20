@@ -4,6 +4,7 @@ import { DEMO_RECORDS } from './demoRecords';
 import { analyzeImage, checkVisionHealth } from './visionApi';
 import { computeRecordHash, sha256Hex, signEvidenceRecord, verifyImageBlob, verifyRecord, verifySignature } from './evidenceCrypto';
 import { AuditReplay, VerificationPortal } from './forensicViews';
+import ReferenceCardLock from './ReferenceCardLock';
 
 const steps = ['Capture', 'Calibrate', 'Analyze', 'Evidence'];
 const DEMO_CASES = {
@@ -140,6 +141,7 @@ export default function App() {
   const cameraStreamRef = useRef(null);
   const cameraCanvasRef = useRef(null);
   const [captureCoach, setCaptureCoach] = useState({ status: 'WAITING', score: 0, checks: { brightness: false, contrast: false, sharpness: false, stability: false }, tips: ['Start the camera and hold the device steady.'] });
+  const [cardLock, setCardLock] = useState({ cardDetected: false, perspectiveOk: false, reactionAreaOk: false, calibrationReady: false, score: 0, message: 'Waiting for the reference card…' });
   const [operatorId, setOperatorId] = useState('DEMO-OPERATOR-001');
   const [testId, setTestId] = useState(() => `TEST-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`);
   const [testKit, setTestKit] = useState('Standard colorimetric field-test profile');
@@ -193,6 +195,7 @@ export default function App() {
       setCameraOpen(true);
       setCameraActive(true);
       setCaptureCoach({ status: 'CHECKING', score: 0, checks: { brightness: false, contrast: false, sharpness: false, stability: false }, tips: ['Checking live image quality…'] });
+      setCardLock({ cardDetected: false, perspectiveOk: false, reactionAreaOk: false, calibrationReady: false, score: 0, message: 'Searching for the reference card…' });
       requestAnimationFrame(() => {
         if (cameraVideoRef.current) {
           cameraVideoRef.current.srcObject = stream;
@@ -472,20 +475,21 @@ export default function App() {
           <div className="camera-stage">
             <video ref={cameraVideoRef} className="camera-video" playsInline muted autoPlay />
             <div className="camera-overlay">
+              <ReferenceCardLock videoRef={cameraVideoRef} active={cameraActive} onStatus={setCardLock} />
               <div className="reference-zone">REFERENCE CARD</div>
               <div className="reaction-zone">REACTION AREA</div>
               <div className="camera-crosshair">+</div>
             </div>
           </div>
           <div className="camera-checks">
-            <span>✓ Reference card visible</span>
-            <span>✓ Reaction area visible</span>
-            <span>✓ Avoid glare / blur</span>
+            <span className={cardLock.cardDetected ? "ok" : ""}>{cardLock.cardDetected ? "✓" : "○"} Reference card locked</span>
+            <span className={cardLock.reactionAreaOk ? "ok" : ""}>{cardLock.reactionAreaOk ? "✓" : "○"} Reaction area inside frame</span>
+            <span className={captureCoach.checks.sharpness && captureCoach.checks.stability ? "ok" : ""}>{captureCoach.checks.sharpness && captureCoach.checks.stability ? "✓" : "○"} Avoid glare / blur</span>
           </div>
           <div className="camera-sheet-actions">
             <button className="secondary" onClick={() => { stopCamera(); setCameraOpen(false); }}>Cancel</button>
-            <div className="live-coach"><div className="live-coach-head"><span className="section-label">LIVE CAPTURE COACH</span><strong className={captureCoach.status === 'READY' ? 'coach-ready' : 'coach-adjust'}>{captureCoach.status} · {captureCoach.score}/100</strong></div><div className="coach-checks"><span className={captureCoach.checks.brightness ? 'ok' : ''}>Brightness</span><span className={captureCoach.checks.contrast ? 'ok' : ''}>Contrast</span><span className={captureCoach.checks.sharpness ? 'ok' : ''}>Sharpness</span><span className={captureCoach.checks.stability ? 'ok' : ''}>Glare / stability</span></div><div className="coach-tips">{captureCoach.tips.map((tip) => <div key={tip}>• {tip}</div>)}</div></div>
-            <button className="primary" onClick={captureFromCamera} disabled={!cameraActive || captureCoach.status !== 'READY'}>{captureCoach.status === 'READY' ? 'Capture image' : 'Adjust to capture'}</button>
+            <div className="live-coach"><div className="live-coach-head"><span className="section-label">LIVE CAPTURE COACH</span><strong className={captureCoach.status === 'READY' ? 'coach-ready' : 'coach-adjust'}>{captureCoach.status} · {captureCoach.score}/100</strong></div><div className="coach-checks"><span className={captureCoach.checks.brightness ? 'ok' : ''}>Brightness</span><span className={captureCoach.checks.contrast ? 'ok' : ''}>Contrast</span><span className={captureCoach.checks.sharpness ? 'ok' : ''}>Sharpness</span><span className={captureCoach.checks.stability ? 'ok' : ''}>Glare / stability</span></div><div className="coach-tips">{captureCoach.tips.map((tip) => <div key={tip}>• {tip}</div>)}<div className={cardLock.calibrationReady ? "card-lock-ready" : "card-lock-wait"}>• {cardLock.message}</div></div></div>
+            <button className="primary" onClick={captureFromCamera} disabled={!cameraActive || captureCoach.status !== 'READY' || !cardLock.calibrationReady}>{cardLock.calibrationReady && captureCoach.status === 'READY' ? 'Capture image' : 'Align card to capture'}</button>
           </div>
         </div>
       </div>}
@@ -508,6 +512,7 @@ export default function App() {
               <label className="upload">{file?.name || 'Choose image from device'}<input type="file" accept="image/*" capture="environment" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>
             </div>
             {file && <div className="capture-selected">Selected: <strong>{file.name}</strong></div>}
+            <div className="reference-lock-summary"><span className="section-label">REFERENCE-CARD LOCK</span><div className="reference-lock-grid"><span className={cardLock.cardDetected ? "lock-ok" : ""}>{cardLock.cardDetected ? "✓" : "○"} Card detected</span><span className={cardLock.perspectiveOk ? "lock-ok" : ""}>{cardLock.perspectiveOk ? "✓" : "○"} Perspective aligned</span><span className={cardLock.reactionAreaOk ? "lock-ok" : ""}>{cardLock.reactionAreaOk ? "✓" : "○"} Reaction area clear</span><span className={cardLock.calibrationReady ? "lock-ok" : ""}>{cardLock.calibrationReady ? "✓" : "○"} Calibration ready</span></div><small>{cardLock.message}</small></div>
             <div className="capture-guidance">
               <span className="section-label">IN-FRAME CHECK</span>
               <span>1. Reference card visible · 2. Reaction area visible · 3. Avoid glare and blur</span>
