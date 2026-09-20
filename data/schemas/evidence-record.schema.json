@@ -109,6 +109,17 @@
         }
       }
     },
+    "aruco": {
+      "type": ["object", "null"],
+      "properties": {
+        "status": { "type": "string" },
+        "verified": { "type": "boolean" },
+        "dictionary": { "type": "string" },
+        "expected_ids": { "type": "array", "items": { "type": "integer" } },
+        "detected_ids": { "type": "array", "items": { "type": "integer" } },
+        "matched_ids": { "type": "array", "items": { "type": "integer" } }
+      }
+    },
     "quality": {
       "type": [
         "object",
