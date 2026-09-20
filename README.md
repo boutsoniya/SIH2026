@@ -1,33 +1,98 @@
 # NARCOSCOPE — Digital Companion for Field Drug Testing
 
-> SIH 2026 · Problem Statement SIH26231 · Prototype
+> SIH 2026 · Problem Statement SIH26231 · Field-ready prototype
 
-NARCOSCOPE is a field-first digital companion for colorimetric drug testing. It combines guided image capture, reference-card color calibration, computer vision, machine-learning assisted presumptive interpretation, and tamper-evident evidence records.
+NARCOSCOPE is a field-first digital companion for colorimetric drug testing. It combines guided image capture, physical reference-card calibration, computer vision, presumptive interpretation, uncertainty handling, and tamper-evident evidence records into one auditable workflow.
 
 ## Core workflow
 
-**Capture → Validate → Calibrate → Analyze → Explain → Geotag → Hash → Sign → Verify → Sync**
+**Capture → Validate → Calibrate → Analyze → Explain → Seal → Verify → Sync → FSL Handoff**
 
 ## Why this architecture
 
-The prototype is designed around the operational needs of field testing rather than treating the problem as image classification alone. Every analysis can be associated with operator identity, timestamp, location, image hash, model output, quality checks, and an auditable record.
+The system is designed around the operational needs of field testing rather than image classification alone. Each analysis can be associated with operator attribution, timestamp, device metadata, location, image hash, quality checks, interpretation, evidence integrity metadata, chain of custody, and laboratory reconciliation status.
 
-## Planned modules
+## Field workflow
 
-1. Field Capture & Guided Imaging
-2. Reference-Card Detection & Color Calibration
-3. Image Quality Control
-4. ROI Detection & Computer Vision
-5. ML-assisted Presumptive Classification
-6. Explainable Result & Uncertainty
-7. Evidence Integrity — SHA-256, metadata, signatures, verification
-8. Offline-first History & Sync
-9. Secure Search & Audit Dashboard
-10. Evaluation, Documentation & SIH Demo
+1. **Guided capture** — live quality checks for brightness, contrast, sharpness, and glare.
+2. **Reference-card lock** — four-corner geometry and reaction-area framing.
+3. **Backend verification** — authoritative geometry validation and optional ArUco reference-card verification.
+4. **Calibration** — kit-specific reference patches and LAB color correction.
+5. **Reaction analysis** — normalized ROI and CIEDE2000 color-distance analysis where a validated target profile exists.
+6. **Safe interpretation** — presumptive result or **INCONCLUSIVE** when evidence is insufficient.
+7. **Evidence sealing** — SHA-256 hashes, signed metadata, chain-of-custody events, and ledger receipt.
+8. **Offline-first operation** — local evidence ledger with later server synchronization.
+9. **Independent verification** — investigator/FSL portal and one-scan QR verification.
+10. **FSL handoff** — reconciliation status without mutating the original field evidence.
+
+## Key capabilities
+
+- Live capture quality gate
+- Reference-card geometry and reaction ROI
+- Backend ArUco verification
+- Kit-specific color calibration
+- CIEDE2000 color comparison
+- Conservative anti-spoof/re-photography screening
+- Presumptive / INCONCLUSIVE gating
+- SHA-256 evidence hashing
+- Signed evidence metadata
+- Hash-chained offline ledger
+- Server-side sync with conflict protection
+- Audit replay
+- Investigator/FSL verification portal
+- One-scan QR verification
+- Evidence packet export
+- Role-aware API boundary
+- Automated Python + Node validation
+
+## Architecture
+
+```text
+Physical Test Kit
+      │
+      ├── Reagent QR / Kit Lot / Expiry
+      └── Evidence Bag ID
+      │
+      ▼
+Field Capture App
+      │
+      ├── Live Quality Coach
+      ├── Reference Card Lock
+      └── Reaction ROI
+      │
+      ▼
+Vision API
+      │
+      ├── Geometry Validation
+      ├── ArUco Verification
+      ├── Calibration
+      ├── Color / ROI Analysis
+      └── Uncertainty Gate
+      │
+      ▼
+Evidence Record
+      │
+      ├── SHA-256 + Signature
+      ├── Chain of Custody
+      └── Offline Ledger
+      │
+      ├──────────────► Audit Replay
+      ├──────────────► QR Verification
+      └──────────────► FSL Reconciliation
+```
 
 ## Prototype boundary
 
-The output is **presumptive** and is not a replacement for laboratory confirmation or certified forensic testing. Real-world performance requires representative field images and laboratory-confirmed labels.
+The output is **presumptive** and is not a replacement for laboratory confirmation or certified forensic testing. Current implementation demonstrates the field workflow, evidence integrity, verification, and engineering contracts. It does **not** establish forensic substance-identification accuracy.
+
+A production forensic claim requires a kit-specific, laboratory-confirmed validation program covering representative field images, multiple devices and lighting conditions, kit/lot variation, blinded evaluation, acceptance thresholds, sensitivity, specificity, false-positive/false-negative rates, inconclusive rate, calibration error, confidence intervals, and independent technical/forensic review.
+
+Important boundaries:
+- CIEDE2000 is a generic color-difference method; operational thresholds must come from validated kit profiles.
+- Backend ArUco verifies the reference card; it does not identify a drug.
+- Browser card framing is a capture aid; backend validation is authoritative.
+- Controlled demo scenarios validate workflow/security contracts, not forensic model accuracy.
+- Production identity should use real authentication/SSO rather than client-supplied role metadata.
 
 ## Repository structure
 
@@ -37,95 +102,97 @@ SIH2026/
 │   ├── field-app/          # React/PWA field interface
 │   └── dashboard/          # Evidence/search dashboard
 ├── services/
-│   ├── api/                # Backend API
-│   └── vision/             # Python CV/ML inference
+│   ├── api/                # Node.js/Express backend
+│   └── vision/             # Python/OpenCV vision service
 ├── packages/
-│   ├── evidence/           # Hashing, record integrity, verification
+│   ├── evidence/           # Evidence integrity utilities
 │   └── shared/             # Shared schemas/types
 ├── data/
 │   ├── sample/
 │   └── schemas/
 ├── docs/
 │   ├── architecture/
-│   ├── ppt/
-│   └── demo/
-├── tests/
-└── README.md
+│   ├── demo/
+│   └── ppt/
+└── tests/
 ```
 
-## Technical direction
+## Technical stack
 
-- Frontend: React + Vite + PWA capabilities
-- Backend: Node.js + Express
-- Vision/ML: Python + OpenCV + scikit-learn, with room for stronger models after real-data evaluation
-- Local persistence: IndexedDB/local storage for prototype offline operation
-- Evidence integrity: SHA-256 content hashing + signed record design
-- API contracts: JSON with explicit schemas and validation
-
-## Development principle
-
-Existing publicly visible prototype ideas may inform the design, but this repository maintains its own implementation, evidence model, UI workflow, evaluation protocol, and documentation.
+- **Frontend:** React + Vite + PWA capabilities
+- **Backend:** Node.js + Express
+- **Vision:** Python + FastAPI + OpenCV
+- **Persistence:** IndexedDB/local storage for offline field operation; server-side evidence store for synchronized records
+- **Integrity:** SHA-256 hashing, signed record design, hash-chained ledger
+- **Validation:** pytest + Node test suite + GitHub Actions
+- **Deployment:** Render
 
 ## Deployment
 
-The current prototype is deployed on Render as two services:
+The current Render deployment uses three services:
 
-- **Field App:** https://narcoscope-field.onrender.com
-- **Vision API:** https://narcoscope-vision.onrender.com
+- **Field App:** https://sih2026-field-app.onrender.com
+- **API:** https://sih2026-api-qk7g.onrender.com
+- **Vision API:** https://sih2026-vision.onrender.com
 
-The field app is configured to call the deployed Vision API through `VITE_VISION_API_URL`. The Vision API accepts cross-origin requests from the Field App domain through the `CORS_ORIGINS` configuration.
+The field app is configured through:
+- `VITE_API_BASE_URL`
+- `VITE_VISION_API_URL`
 
-The prototype's offline sync flow remains explicitly local/demo behavior until a server-side sync endpoint is implemented.
+For production, configure restricted CORS origins, real authentication, durable audit/ledger storage, managed signing-key custody, and an evidence-retention policy.
 
-## Status
+## Verification workflow
 
-Core field workflow, evidence integrity scaffolding, offline persistence, Vision API deployment, and automated frontend build validation are in place. Final browser-level end-to-end validation is still required before presenting the deployment as a fully validated field workflow.
+Sealed evidence records expose a compact verification QR containing only the Verification ID/Test ID.
 
-## Production hardening (v14)
+The **#verify** route supports:
+- native browser QR scanning where `BarcodeDetector` is available
+- manual Verification ID entry as a fallback
+- server-side evidence verification
+- integrity/hash/ledger status
+- evidence-bag and FSL reconciliation status
 
-The API now includes a lightweight role-based access-control layer and an auditable request trail for the prototype:
+The QR never contains evidence images, private keys, or sensitive case data.
 
-- **OFFICER** — submit field analysis and sync captured evidence.
-- **SUPERVISOR** — officer permissions plus ledger verification and FSL reconciliation.
-- **FSL** — evidence verification, ledger verification, and laboratory reconciliation.
-- **API key protection** — set `API_AUTH_KEY` in production; requests then require `X-API-Key`.
-- **Operator attribution** — send `X-Operator-Id` with requests; role is supplied through `X-Role`.
-- **Sync conflict protection** — a reused test ID with a different record hash returns HTTP 409 instead of overwriting evidence.
-- **Audit trail** — security-sensitive events are retained in a bounded in-memory audit stream for the prototype.
+## Controlled judge/demo scenarios
 
-Authentication is intentionally optional when `API_AUTH_KEY` is unset so the local/SIH demo remains easy to run. A production deployment should set the key, restrict `CORS_ORIGINS`, use real identity-provider authentication, and persist audit/ledger state in durable storage.
+1. **Clean verification** — create/sync a sealed record and verify it through the QR.
+2. **Wrong identifier** — enter an unknown ID and show the review/error state.
+3. **Tamper simulation** — alter a copy of a sealed record and demonstrate integrity failure.
+4. **Sync conflict** — reuse a test ID with a different record hash and demonstrate HTTP 409.
+5. **FSL reconciliation** — update and verify laboratory reconciliation status with an authorized role.
+6. **Unsupported browser** — demonstrate manual Verification ID fallback.
+7. **Poor capture** — deliberately introduce glare/blur and show the quality gate blocking capture.
+8. **Insufficient evidence** — demonstrate the safe INCONCLUSIVE path.
 
-### API validation
+These scenarios demonstrate application contracts and operational safety, not forensic accuracy.
 
-Run:
+## Validation
+
+Run the automated checks locally:
 
 ```bash
-cd services/api
+cd services/vision
+pytest
+
+cd ../api
 npm test
 ```
 
-These tests cover the ledger chain and the v14 access-control boundary. They are security/contract tests, not evidence of forensic model accuracy.
+GitHub Actions also validates the Python vision service and Node API contracts.
 
-## One-scan evidence verification (v15)
+See:
+- `docs/VALIDATION.md`
+- `docs/SIH_FINAL_JUDGE_GUIDE.md`
+- `docs/demo/DEMO_SCRIPT.md`
+- `docs/ppt/SIH_PPT_CONTENT.md`
 
-Sealed evidence records now expose a compact verification QR containing only the Verification ID/Test ID. An Investigator or FSL user can open the **#verify** route, scan the QR with a supported browser, or enter the identifier manually.
+## Judge-ready positioning
 
-- QR payload contains identifiers only; it does not embed evidence images, private keys, or sensitive case data.
-- The verification route calls the server-side evidence verification endpoint.
-- Verification checks the stored record and evidence ledger state; it does not reclassify the substance.
-- Printable evidence packets include the same verification QR.
-- Set `VITE_API_BASE_URL` for deployments where the field app and API are hosted on different origins.
-- Native QR scanning uses the browser `BarcodeDetector` API; unsupported browsers fall back to manual ID entry.
+**One-line pitch:**
 
-### Controlled demo validation scenarios
+> NARCOSCOPE turns a field drug-test strip into a guided, auditable, verifiable digital evidence record — not just an image classification.
 
-For a judge/demo run, validate the workflow with controlled scenarios rather than claiming forensic accuracy:
+**Demo safety wording:**
 
-1. **Clean verification:** create/sync a sealed record, scan its QR, confirm the record and ledger verify.
-2. **Wrong identifier:** scan or enter an unknown ID, confirm a clear review/error state.
-3. **Tamper simulation:** modify a copy of a sealed record and confirm local integrity verification fails.
-4. **Sync conflict:** submit the same test ID with a different record hash and confirm HTTP 409.
-5. **FSL reconciliation:** update the laboratory status with a Supervisor/FSL role and verify it from the portal.
-6. **Unsupported browser:** confirm manual Verification ID entry remains available.
-
-These scenarios validate the application workflow and security contracts; they are not sensitivity/specificity evidence for substance identification.
+> This demonstration validates the field workflow, evidence integrity and verification contracts. Forensic performance will be established through a separate laboratory-confirmed validation study.
