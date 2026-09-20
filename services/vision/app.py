@@ -32,6 +32,14 @@ async def analyze(
     image: UploadFile = File(...),
     reagent_qr: str | None = Form(default=None),
     evidence_bag_id: str | None = Form(default=None),
+    card_geometry: str | None = Form(default=None),
 ):
+    import json
     payload = await image.read()
-    return analyze_image(payload, reagent_qr=reagent_qr, evidence_bag_id=evidence_bag_id)
+    geometry = None
+    if card_geometry:
+        try:
+            geometry = json.loads(card_geometry)
+        except json.JSONDecodeError:
+            geometry = {"card_corners": []}
+    return analyze_image(payload, reagent_qr=reagent_qr, evidence_bag_id=evidence_bag_id, card_geometry=geometry)
