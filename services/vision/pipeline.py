@@ -120,7 +120,12 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
             ),
         }
 
-    features_result = extract_color_features(normalized_card if normalized_card is not None else image, (0, 0, normalized_card.shape[1], normalized_card.shape[0]) if normalized_card is not None and roi is None else roi)
+    feature_image = normalized_card if normalized_card is not None else image
+    feature_roi = roi
+    if normalized_card is not None and supplied_geometry.get("reaction_roi"):
+        rx, ry, rw, rh = supplied_geometry["reaction_roi"]
+        feature_roi = (int(rx), int(ry), int(rw), int(rh))
+    features_result = extract_color_features(feature_image, feature_roi)
     measured = features_result.get("features", {})
     color_calibration = {"status": "not_configured", "method": "multi_patch_lab"}
     profile = reagent.get("calibration_profile") if reagent.get("valid") else None
