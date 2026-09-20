@@ -29,7 +29,10 @@ def validate_card_geometry(geometry, image_shape):
         return {"valid": False, "status": "missing", "reason": "Card geometry was not supplied."}
 
     h, w = image_shape[:2]
-    pts = _ordered_corners(geometry["card_corners"])
+    raw_corners = geometry["card_corners"]
+    if geometry.get("coordinate_space") == "normalized":
+        raw_corners = [[float(p[0]) * w, float(p[1]) * h] for p in raw_corners]
+    pts = _ordered_corners(raw_corners)
     if pts is None:
         return {"valid": False, "status": "invalid", "reason": "Exactly four finite card corners are required."}
 
@@ -59,6 +62,9 @@ def validate_card_geometry(geometry, image_shape):
     if reaction:
         try:
             rx, ry, rw, rh = [float(reaction[k]) for k in ("x", "y", "width", "height")]
+            if geometry.get("coordinate_space") == "normalized":
+                rx, rw = rx * w, rw * w
+                ry, rh = ry * h, rh * h
             if rw > 0 and rh > 0:
                 corners = np.float32([[rx, ry], [rx + rw, ry], [rx + rw, ry + rh], [rx, ry + rh]])
                 rn = cv2.perspectiveTransform(corners.reshape(1, 4, 2), matrix)[0]
