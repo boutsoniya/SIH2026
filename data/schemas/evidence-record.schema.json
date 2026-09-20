@@ -2,18 +2,137 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "NARCOSCOPE Evidence Record",
   "type": "object",
-  "required": ["test_id", "operator_id", "timestamp", "test_type", "result", "image_sha256", "record_hash"],
+  "required": [
+    "test_id",
+    "operator_id",
+    "timestamp",
+    "test_type",
+    "result",
+    "image_sha256",
+    "record_hash"
+  ],
   "properties": {
-    "test_id": {"type": "string"},
-    "operator_id": {"type": "string"},
-    "timestamp": {"type": "string", "format": "date-time"},
-    "gps": {"type": ["object", "null"], "properties": {"latitude": {"type": "number"}, "longitude": {"type": "number"}}},
-    "test_type": {"type": "string"},
-    "result": {"type": "string", "enum": ["PRESUMPTIVE_POSITIVE", "PRESUMPTIVE_NEGATIVE", "INCONCLUSIVE"]},
-    "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
-    "image_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "record_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "signature": {"type": ["string", "null"]}
+    "test_id": {
+      "type": "string"
+    },
+    "operator_id": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "gps": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        }
+      }
+    },
+    "test_type": {
+      "type": "string"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "PRESUMPTIVE_POSITIVE",
+        "PRESUMPTIVE_NEGATIVE",
+        "INCONCLUSIVE"
+      ]
+    },
+    "confidence": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "image_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "record_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "signature": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "quality": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "capture_device": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "user_agent": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        }
+      }
+    },
+    "chain_of_custody": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "event",
+          "timestamp",
+          "actor"
+        ],
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": [
+              "CAPTURED",
+              "SEALED",
+              "SYNCED",
+              "REVIEWED"
+            ]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "signature_algorithm": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "public_key_jwk": {
+      "type": [
+        "object",
+        "null"
+      ]
+    }
   },
   "additionalProperties": false
 }
