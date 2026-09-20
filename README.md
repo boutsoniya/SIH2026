@@ -105,3 +105,27 @@ npm test
 ```
 
 These tests cover the ledger chain and the v14 access-control boundary. They are security/contract tests, not evidence of forensic model accuracy.
+
+## One-scan evidence verification (v15)
+
+Sealed evidence records now expose a compact verification QR containing only the Verification ID/Test ID. An Investigator or FSL user can open the **#verify** route, scan the QR with a supported browser, or enter the identifier manually.
+
+- QR payload contains identifiers only; it does not embed evidence images, private keys, or sensitive case data.
+- The verification route calls the server-side evidence verification endpoint.
+- Verification checks the stored record and evidence ledger state; it does not reclassify the substance.
+- Printable evidence packets include the same verification QR.
+- Set `VITE_API_BASE_URL` for deployments where the field app and API are hosted on different origins.
+- Native QR scanning uses the browser `BarcodeDetector` API; unsupported browsers fall back to manual ID entry.
+
+### Controlled demo validation scenarios
+
+For a judge/demo run, validate the workflow with controlled scenarios rather than claiming forensic accuracy:
+
+1. **Clean verification:** create/sync a sealed record, scan its QR, confirm the record and ledger verify.
+2. **Wrong identifier:** scan or enter an unknown ID, confirm a clear review/error state.
+3. **Tamper simulation:** modify a copy of a sealed record and confirm local integrity verification fails.
+4. **Sync conflict:** submit the same test ID with a different record hash and confirm HTTP 409.
+5. **FSL reconciliation:** update the laboratory status with a Supervisor/FSL role and verify it from the portal.
+6. **Unsupported browser:** confirm manual Verification ID entry remains available.
+
+These scenarios validate the application workflow and security contracts; they are not sensitivity/specificity evidence for substance identification.

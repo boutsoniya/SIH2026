@@ -6,6 +6,7 @@ import { computeRecordHash, sha256Hex, signEvidenceRecord, verifyImageBlob, veri
 import { AuditReplay, VerificationPortal } from './forensicViews';
 import ReferenceCardLock from './ReferenceCardLock';
 import InvestigatorPortal from './InvestigatorPortal';
+import QuickVerify from './QuickVerify';
 
 const steps = ['Capture', 'Calibrate', 'Analyze', 'Evidence'];
 const DEMO_CASES = {
@@ -120,6 +121,8 @@ function makeDemoAnalysis(key) {
 
 
 export default function App() {
+  const verifyRoute = typeof window !== 'undefined' && window.location.hash === '#verify';
+  if (verifyRoute) return <QuickVerify onBack={() => { window.location.hash = ''; window.location.reload(); }} />;
   const [step, setStep] = useState(0);
   const [file, setFile] = useState(null);
   const [offline, setOffline] = useState(true);

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import QRCode from 'qrcode';
 import { buildEvidencePacket, downloadEvidencePacket, printEvidencePacket } from './evidencePacket';
 
 const EVENT_LABELS = { CAPTURED: 'Image captured', CALIBRATED: 'Reference card calibrated', ANALYZED: 'Presumptive analysis completed', SEALED: 'Evidence record sealed', SYNCED: 'Record synchronized' };
@@ -32,6 +33,12 @@ export function AuditReplay({ record, onClose }) {
 
 export function VerificationPortal({ record, onClose, onVerify }) {
   const [copied, setCopied] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState('');
+  useEffect(() => {
+    if (!record) return;
+    QRCode.toDataURL(JSON.stringify({ verification_id: 'VERIFY-' + record.test_id, test_id: record.test_id }), { width: 180, margin: 1 })
+      .then(setQrDataUrl).catch(() => setQrDataUrl(''));
+  }, [record]);
   if (!record) return null;
   const verificationId = 'VERIFY-' + record.test_id;
   const integrityItems = [['Image SHA-256', Boolean(record.image_sha256)], ['Record hash', Boolean(record.record_hash)], ['Digital signature', Boolean(record.signature)], ['Evidence bag', Boolean(record.evidence_bag_id)], ['GPS metadata', Boolean(record.gps)]];
