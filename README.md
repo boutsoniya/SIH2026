@@ -80,3 +80,28 @@ The prototype's offline sync flow remains explicitly local/demo behavior until a
 ## Status
 
 Core field workflow, evidence integrity scaffolding, offline persistence, Vision API deployment, and automated frontend build validation are in place. Final browser-level end-to-end validation is still required before presenting the deployment as a fully validated field workflow.
+
+## Production hardening (v14)
+
+The API now includes a lightweight role-based access-control layer and an auditable request trail for the prototype:
+
+- **OFFICER** — submit field analysis and sync captured evidence.
+- **SUPERVISOR** — officer permissions plus ledger verification and FSL reconciliation.
+- **FSL** — evidence verification, ledger verification, and laboratory reconciliation.
+- **API key protection** — set `API_AUTH_KEY` in production; requests then require `X-API-Key`.
+- **Operator attribution** — send `X-Operator-Id` with requests; role is supplied through `X-Role`.
+- **Sync conflict protection** — a reused test ID with a different record hash returns HTTP 409 instead of overwriting evidence.
+- **Audit trail** — security-sensitive events are retained in a bounded in-memory audit stream for the prototype.
+
+Authentication is intentionally optional when `API_AUTH_KEY` is unset so the local/SIH demo remains easy to run. A production deployment should set the key, restrict `CORS_ORIGINS`, use real identity-provider authentication, and persist audit/ledger state in durable storage.
+
+### API validation
+
+Run:
+
+```bash
+cd services/api
+npm test
+```
+
+These tests cover the ledger chain and the v14 access-control boundary. They are security/contract tests, not evidence of forensic model accuracy.
