@@ -1,0 +1,17 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"Validated Kit Calibration Profile",
+  "type":"object",
+  "required":["profile_id","kit","card_version","calibration_version","patches"],
+  "properties":{
+    "profile_id":{"type":"string"},
+    "kit":{"type":"string"},
+    "card_version":{"type":"string"},
+    "calibration_version":{"type":"string"},
+    "valid_from":{"type":["string","null"],"format":"date"},
+    "valid_until":{"type":["string","null"],"format":"date"},
+    "marker_ids":{"type":"array","items":{"type":"integer"}},
+    "patches":{"type":"array","minItems":3,"items":{"type":"object","required":["name","rgb"],"properties":{"name":{"type":"string"},"rgb":{"type":"array","minItems":3,"maxItems":3,"items":{"type":"number"}},"box":{"type":"array","minItems":4,"maxItems":4,"items":{"type":"number"}}}}}
+  },
+  "additionalProperties":false
+}
