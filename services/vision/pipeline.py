@@ -84,7 +84,7 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
     calibration = calibrate_from_reference(image, reference_box)
     if supplied_geometry.get("valid"):
         normalized_card = normalize_card(image, supplied_geometry)
-        roi = tuple(int(v) for v in supplied_geometry["reaction_roi"]) if supplied_geometry.get("reaction_roi") else detect_reaction_roi(image, reference)
+        roi = tuple(int(v) for v in supplied_geometry["reaction_roi_pixels"]) if supplied_geometry.get("reaction_roi_pixels") else detect_reaction_roi(image, reference)
         calibration["geometry_source"] = supplied_geometry.get("source", "browser_guidance")
         calibration["homography"] = supplied_geometry["homography"]
         calibration["normalized_size"] = supplied_geometry["normalized_size"]
