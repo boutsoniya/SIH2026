@@ -4,6 +4,7 @@ import numpy as np
 from anti_spoof import screen_spoof_signal
 from aruco import detect_aruco_markers
 from calibration import calibrate_from_reference, detect_reference_card
+from color_calibration import calibrate_color_patches, apply_lab_calibration
 from ciede2000 import compare_to_reference
 from features import extract_color_features
 from geometry import validate_card_geometry, normalize_card
@@ -108,7 +109,7 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
             "anti_spoof": spoof,
             "reagent": reagent,
             "evidence_bag_id": evidence_bag_id,
-            "calibration": calibration,
+            "calibration": {**calibration, "color_calibration": color_calibration},
         "card_geometry": supplied_geometry,
             "roi": None,
             "features": None,
@@ -119,9 +120,22 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
             ),
         }
 
-    features_result = extract_color_features(image, roi)
-    inference = predict(features_result.get("features", {}))
+    features_result = extract_color_features(normalized_card if normalized_card is not None else image, (0, 0, normalized_card.shape[1], normalized_card.shape[0]) if normalized_card is not None and roi is None else roi)
     measured = features_result.get("features", {})
+    color_calibration = {"status": "not_configured", "method": "multi_patch_lab"}
+    profile = reagent.get("calibration_profile") if reagent.get("valid") else None
+    if normalized_card is not None and profile and profile.get("patches"):
+        patch_boxes = {}
+        for patch in profile.get("patches", []):
+            box = patch.get("box")
+            if isinstance(box, list) and len(box) == 4:
+                patch_boxes[patch.get("name", "")] = [box[0] * normalized_card.shape[1], box[1] * normalized_card.shape[0], box[2] * normalized_card.shape[1], box[3] * normalized_card.shape[0]]
+        color_calibration = calibrate_color_patches(normalized_card, patch_boxes, profile)
+        if color_calibration.get("status") == "ready":
+            corrected = apply_lab_calibration((measured.get("mean_l"), measured.get("mean_a"), measured.get("mean_b")), color_calibration)
+            measured = {**measured, "raw_mean_lab": [measured.get("mean_l"), measured.get("mean_a"), measured.get("mean_b")], "mean_l": corrected[0], "mean_a": corrected[1], "mean_b": corrected[2]}
+            features_result["features"] = measured
+    inference = predict(measured)
     measured_lab = (measured.get("mean_l"), measured.get("mean_a"), measured.get("mean_b"))
     target_lab = reagent.get("target_lab") if reagent.get("valid") else None
     color_distance = compare_to_reference(measured_lab, target_lab) if target_lab else {"status": "not_configured", "delta_e_00": None}
