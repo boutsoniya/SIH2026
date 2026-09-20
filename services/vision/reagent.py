@@ -25,6 +25,9 @@ def parse_reagent_qr(payload):
         return {"valid": False, "reason": "Expiry must use YYYY-MM-DD."}
     expired = expiry < date.today()
     target_lab = data.get("target_lab")
+    calibration_profile = data.get("calibration_profile")
+    if calibration_profile is not None and not isinstance(calibration_profile, dict):
+        calibration_profile = None
     if target_lab is not None and (not isinstance(target_lab, list) or len(target_lab) != 3):
         target_lab = None
     return {
@@ -34,5 +37,6 @@ def parse_reagent_qr(payload):
         "lot": lot,
         "expires": expires,
         "target_lab": target_lab,
+        "calibration_profile": calibration_profile,
         "reason": "Reagent expired." if expired else "Reagent metadata valid.",
     }
