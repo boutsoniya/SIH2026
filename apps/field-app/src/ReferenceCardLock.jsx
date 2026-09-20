@@ -38,7 +38,7 @@ export default function ReferenceCardLock({ videoRef, active, onStatus }) {
       const reactionRoi={x:guide.left+Math.round(cardW*.22),y:guide.top+Math.round(cardH*.48),width:Math.round(cardW*.56),height:Math.round(cardH*.28)};
       const score=Math.round(([cardDetected,perspectiveOk,reactionAreaOk].filter(Boolean).length/3)*100);
       const message=calibrationReady?'4-CORNER CARD LOCKED — reaction ROI is ready.':cardDetected?'Card boundary found. Flatten the card and keep all four corners inside the guide.':'Move the complete reference card into the guide; avoid cropped edges and uneven lighting.';
-      onStatus({cardDetected,perspectiveOk,reactionAreaOk,calibrationReady,score,corners,reactionRoi,edgeScore,aspectRatio:ratio,message});
+      onStatus({cardDetected,perspectiveOk,reactionAreaOk,calibrationReady,score,corners,reactionRoi,edgeScore,aspectRatio:ratio,message,frameSize:{width:w,height:h}});
     },700);
     return ()=>window.clearInterval(timer);
   },[active,videoRef,onStatus]);
