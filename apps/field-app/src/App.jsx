@@ -3,6 +3,7 @@ import { getEvidence, listEvidence, saveEvidence, syncQueuedEvidence, supportsOf
 import { DEMO_RECORDS } from './demoRecords';
 import { analyzeImage, checkVisionHealth } from './visionApi';
 import { computeRecordHash, sha256Hex, signEvidenceRecord, verifyImageBlob, verifyRecord, verifySignature } from './evidenceCrypto';
+import { AuditReplay, VerificationPortal } from './forensicViews';
 
 const steps = ['Capture', 'Calibrate', 'Analyze', 'Evidence'];
 const DEMO_CASES = {
@@ -145,6 +146,8 @@ export default function App() {
   const [locationStatus, setLocationStatus] = useState('not captured');
   const [previewUrl, setPreviewUrl] = useState('');
   const [latestEvidence, setLatestEvidence] = useState(null);
+  const [replayRecord, setReplayRecord] = useState(null);
+  const [verificationRecord, setVerificationRecord] = useState(null);
 
   const demoPalette = [
     { key: 'yellow', label: 'Yellow', hex: DEMO_CASES.yellow.hex },
@@ -611,7 +614,7 @@ export default function App() {
           <button className="primary" onClick={createEvidence}>Create evidence record →</button>
         </div>}
 
-        {step === 3 && <div className="panel evidence"><div className="evidence-heading"><div><span className="eyebrow">COMMAND CENTER</span><h3>Evidence history</h3><p className="muted">Searchable local history for demo records and field-captured evidence.</p></div><button className="sync-button" onClick={syncNow} disabled={syncing || !storageReady}>{syncing ? 'Syncing…' : 'Sync queue'}</button></div><div className="history-toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search test ID, operator, result…" /><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="ALL">All records</option><option value="INCONCLUSIVE">Inconclusive</option><option value="PRESUMPTIVE_POSITIVE">Presumptive positive</option><option value="PRESUMPTIVE_NEGATIVE">Presumptive negative</option><option value="QUEUED">Queued</option><option value="SYNCED">Synced</option><option value="VERIFIED">Integrity verified</option></select></div><div className="history-list">{visibleRecords.length ? visibleRecords.map((record) => <article className="history-row" key={record.test_id}><div><strong>{record.test_id}</strong><span>{record.operator_id} · {record.test_kit || 'Colorimetric profile'} · {new Date(record.timestamp).toLocaleString()}</span></div><div className="history-tags"><span className={`tag result-${record.result.toLowerCase()}`}>{record.result.replaceAll('_', ' ')}</span><span className="tag">{record.integrity_status}</span><span className="tag">{record.sync_status}</span><span className="tag">{record.signature ? 'SIGNED' : 'UNSIGNED'}</span>{record.gps ? <span className="tag">GPS</span> : <span className="tag">GPS N/A</span>}{record.image_sha256 && <button className="tag verify-tag" onClick={() => verifyEvidence(record)}>Verify</button>}</div></article>) : <div className="empty-state">No evidence records match this search.</div>}</div>{integrityMessage && <div className="notice">{integrityMessage}</div>}{latestEvidence && <div className="evidence-certificate">
+        {step === 3 && <div className="panel evidence"><div className="evidence-heading"><div><span className="eyebrow">COMMAND CENTER</span><h3>Evidence history</h3><p className="muted">Searchable local history for demo records and field-captured evidence.</p></div><button className="sync-button" onClick={syncNow} disabled={syncing || !storageReady}>{syncing ? 'Syncing…' : 'Sync queue'}</button></div><div className="history-toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search test ID, operator, result…" /><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="ALL">All records</option><option value="INCONCLUSIVE">Inconclusive</option><option value="PRESUMPTIVE_POSITIVE">Presumptive positive</option><option value="PRESUMPTIVE_NEGATIVE">Presumptive negative</option><option value="QUEUED">Queued</option><option value="SYNCED">Synced</option><option value="VERIFIED">Integrity verified</option></select></div><div className="history-list">{visibleRecords.length ? visibleRecords.map((record) => <article className="history-row" key={record.test_id}><div><strong>{record.test_id}</strong><span>{record.operator_id} · {record.test_kit || 'Colorimetric profile'} · {new Date(record.timestamp).toLocaleString()}</span></div><div className="history-tags"><span className={`tag result-${record.result.toLowerCase()}`}>{record.result.replaceAll('_', ' ')}</span><span className="tag">{record.integrity_status}</span><span className="tag">{record.sync_status}</span><span className="tag">{record.signature ? 'SIGNED' : 'UNSIGNED'}</span>{record.gps ? <span className="tag">GPS</span> : <span className="tag">GPS N/A</span>}{record.image_sha256 && <button className="tag verify-tag" onClick={() => verifyEvidence(record)}>Verify</button>}<button className="tag forensic-action" onClick={() => setReplayRecord(record)}>Replay</button><button className="tag forensic-action" onClick={() => setVerificationRecord(record)}>Evidence portal</button></div></article>) : <div className="empty-state">No evidence records match this search.</div>}</div>{integrityMessage && <div className="notice">{integrityMessage}</div>}{latestEvidence && <div className="evidence-certificate">
   <div className="certificate-top"><div><span className="eyebrow">SEALED TEST RECORD</span><h4>{latestEvidence.test_id}</h4></div><span className="verified-pill">SIGNED</span></div>
   <div className="certificate-grid">
     <div><span>Operator</span><strong>{latestEvidence.operator_id}</strong></div>
@@ -626,6 +629,8 @@ export default function App() {
 
 <div className="sync-panel"><div><strong>Offline evidence queue</strong><span>Records remain local until sync is confirmed.</span></div><span className="sync-count">{queued} pending</span></div>{lastSync && <p className="sync-note">Last local sync: {lastSync.toLocaleTimeString()}</p>}<button className="primary" onClick={() => setStep(0)}>Start another test ↗</button></div>}
       </section>
+      {replayRecord && <AuditReplay record={replayRecord} onClose={() => setReplayRecord(null)} />}
+      {verificationRecord && <VerificationPortal record={verificationRecord} onClose={() => setVerificationRecord(null)} onVerify={async (record) => { await verifyEvidence(record); setVerificationRecord(null); }} />}
     </main>
   );
 }
