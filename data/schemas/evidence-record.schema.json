@@ -95,6 +95,16 @@
           "minItems": 3,
           "maxItems": 3
         },
+        "color_calibration": {
+          "type": ["object", "null"],
+          "properties": {
+            "status": { "type": "string" },
+            "method": { "type": "string" },
+            "profile_id": { "type": "string" },
+            "patches_used": { "type": "integer" },
+            "rmse": { "type": "number" }
+          }
+        },
         "normalized_size": {
           "type": "array",
           "items": { "type": "integer" },
