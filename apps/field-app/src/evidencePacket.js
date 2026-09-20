@@ -1,4 +1,5 @@
 import { canonicalize, sha256Hex } from './evidenceCrypto';
+import QRCode from 'qrcode';
 
 export async function buildEvidencePacket(record) {
   const packet = {
@@ -64,7 +65,8 @@ export function downloadEvidencePacket(packet) {
   URL.revokeObjectURL(url);
 }
 
-export function printEvidencePacket(packet) {
+export async function printEvidencePacket(packet) {
+  const qrDataUrl = await QRCode.toDataURL(JSON.stringify({ verification_id: packet.verification_id, test_id: packet.case.test_id }), { width: 180, margin: 1 }).catch(() => '');
   const rows = [
     ['Verification ID', packet.verification_id],
     ['Test ID', packet.case.test_id],
@@ -82,7 +84,7 @@ export function printEvidencePacket(packet) {
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Field Evidence Packet ${escape(packet.verification_id)}</title>
   <style>body{font:14px Arial,sans-serif;margin:36px;color:#172033}h1{margin-bottom:4px}h2{margin-top:28px;border-bottom:1px solid #ddd;padding-bottom:7px}.sub{color:#64748b}table{width:100%;border-collapse:collapse}td{padding:9px;border-bottom:1px solid #e5e7eb}td:first-child{width:30%;font-weight:700}.notice{margin-top:24px;padding:12px;background:#f1f5f9}.mono{font-family:monospace;word-break:break-all}@media print{button{display:none}}</style></head><body>
   <h1>Field Evidence Packet</h1><div class="sub">${escape(packet.verification_id)} · Generated ${escape(packet.generated_at)}</div>
-  <h2>Case Summary</h2><table>${rows.map(([a,b]) => `<tr><td>${escape(a)}</td><td class="${a.toLowerCase().includes('hash')?'mono':''}">${escape(b)}</td></tr>`).join('')}</table>
+  ${qrDataUrl ? '<div style="display:flex;align-items:center;gap:16px;margin:16px 0"><img src="' + qrDataUrl + '" width="120" height="120" alt="Verification QR"><div><strong>One-scan verification</strong><div>Scan this QR in the Investigator portal.</div><div style="color:#64748b;margin-top:5px">Verification ID: ' + escape(packet.verification_id) + '</div></div></div>' : ''}<h2>Case Summary</h2><table>${rows.map(([a,b]) => `<tr><td>${escape(a)}</td><td class="${a.toLowerCase().includes('hash')?'mono':''}">${escape(b)}</td></tr>`).join('')}</table>
   <h2>Analytical Chain</h2><pre>${escape(JSON.stringify(packet.analytical_chain,null,2))}</pre>
   <h2>Chain of Custody</h2><pre>${escape(JSON.stringify(packet.chain_of_custody,null,2))}</pre>
   <h2>Integrity & Reconciliation</h2><pre>${escape(JSON.stringify({integrity:packet.integrity,fsl_reconciliation:packet.fsl_reconciliation,audit:packet.audit},null,2))}</pre>
