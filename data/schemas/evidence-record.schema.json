@@ -119,6 +119,9 @@
         }
       }
     },
+    "calibration": {
+      "type": ["object", "null"]
+    },
     "aruco": {
       "type": ["object", "null"],
       "properties": {
