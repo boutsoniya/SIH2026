@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { buildEvidencePacket, downloadEvidencePacket, printEvidencePacket } from './evidencePacket';
 
 const EVENT_LABELS = { CAPTURED: 'Image captured', CALIBRATED: 'Reference card calibrated', ANALYZED: 'Presumptive analysis completed', SEALED: 'Evidence record sealed', SYNCED: 'Record synchronized' };
 
@@ -44,7 +45,7 @@ export function VerificationPortal({ record, onClose, onVerify }) {
         <div className="verification-id"><div><span>VERIFICATION ID</span><strong>{verificationId}</strong></div><button className="location-test" onClick={copyId}>{copied ? 'Copied' : 'Copy ID'}</button></div>
         <div className="verification-grid">{integrityItems.map(([label, ok]) => <div key={label}><span>{label}</span><strong className={ok ? 'verify-ok' : 'verify-missing'}>{ok ? 'PRESENT' : 'MISSING'}</strong></div>)}</div>
         <div className="verification-facts"><div><span>Outcome</span><strong>{record.result || 'INCONCLUSIVE'}</strong></div><div><span>Evidence bag</span><strong>{record.evidence_bag_id || 'Not recorded'}</strong></div><div><span>Operator</span><strong>{record.operator_id || 'Not recorded'}</strong></div><div><span>FSL status</span><strong>{record.fsl_status || 'PENDING'}</strong></div></div>
-        <div className="replay-actions"><button className="primary" onClick={() => onVerify(record)}>Run integrity verification</button></div>
+        <div className="replay-actions"><button className="secondary" onClick={async () => downloadEvidencePacket(await buildEvidencePacket(record))}>Export evidence packet</button><button className="secondary" onClick={async () => printEvidencePacket(await buildEvidencePacket(record))}>Print packet</button><button className="primary" onClick={() => onVerify(record)}>Run integrity verification</button></div>
       </div>
     </div>
   );
