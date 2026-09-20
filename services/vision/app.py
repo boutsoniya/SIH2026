@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from pipeline import analyze_image
 
-app = FastAPI(title="NARCOSCOPE Vision Service", version="0.2.0")
+app = FastAPI(title="NARCOSCOPE Vision Service", version="0.3.0")
 
 cors_origins = [
     origin.strip()
@@ -24,7 +24,7 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    return {"service": "narcoscope-vision", "status": "ok", "version": "0.2.0"}
+    return {"service": "narcoscope-vision", "status": "ok", "version": "0.3.0"}
 
 
 @app.post("/analyze")
