@@ -141,7 +141,7 @@ export default function App() {
   const cameraStreamRef = useRef(null);
   const cameraCanvasRef = useRef(null);
   const [captureCoach, setCaptureCoach] = useState({ status: 'WAITING', score: 0, checks: { brightness: false, contrast: false, sharpness: false, stability: false }, tips: ['Start the camera and hold the device steady.'] });
-  const [cardLock, setCardLock] = useState({ cardDetected: false, perspectiveOk: false, reactionAreaOk: false, calibrationReady: false, score: 0, message: 'Waiting for the reference card…' });
+  const [cardLock, setCardLock] = useState({ cardDetected: false, perspectiveOk: false, reactionAreaOk: false, calibrationReady: false, score: 0, message: 'Waiting for the reference card…', corners: [], reactionRoi: null });
   const [operatorId, setOperatorId] = useState('DEMO-OPERATOR-001');
   const [testId, setTestId] = useState(() => `TEST-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`);
   const [testKit, setTestKit] = useState('Standard colorimetric field-test profile');
@@ -195,7 +195,7 @@ export default function App() {
       setCameraOpen(true);
       setCameraActive(true);
       setCaptureCoach({ status: 'CHECKING', score: 0, checks: { brightness: false, contrast: false, sharpness: false, stability: false }, tips: ['Checking live image quality…'] });
-      setCardLock({ cardDetected: false, perspectiveOk: false, reactionAreaOk: false, calibrationReady: false, score: 0, message: 'Searching for the reference card…' });
+      setCardLock({ cardDetected: false, perspectiveOk: false, reactionAreaOk: false, calibrationReady: false, score: 0, message: 'Searching for the reference card…', corners: [], reactionRoi: null });
       requestAnimationFrame(() => {
         if (cameraVideoRef.current) {
           cameraVideoRef.current.srcObject = stream;
@@ -476,6 +476,8 @@ export default function App() {
             <video ref={cameraVideoRef} className="camera-video" playsInline muted autoPlay />
             <div className="camera-overlay">
               <ReferenceCardLock videoRef={cameraVideoRef} active={cameraActive} onStatus={setCardLock} />
+              {cardLock.corners?.length === 4 && <svg className="quad-lock-overlay" viewBox="0 0 320 180" preserveAspectRatio="none" aria-hidden="true"><polygon points={cardLock.corners.map((p) => `${p.x},${p.y}`).join(" ")} className={cardLock.calibrationReady ? "quad-ready" : "quad-pending"} /></svg>}
+              {cardLock.reactionRoi && <div className={`reaction-roi-lock ${cardLock.calibrationReady ? "roi-ready" : ""}`} style={{left:`${cardLock.reactionRoi.x/320*100}%`,top:`${cardLock.reactionRoi.y/180*100}%`,width:`${cardLock.reactionRoi.width/320*100}%`,height:`${cardLock.reactionRoi.height/180*100}%`}}>REACTION ROI</div>}
               <div className="reference-zone">REFERENCE CARD</div>
               <div className="reaction-zone">REACTION AREA</div>
               <div className="camera-crosshair">+</div>
@@ -512,7 +514,7 @@ export default function App() {
               <label className="upload">{file?.name || 'Choose image from device'}<input type="file" accept="image/*" capture="environment" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>
             </div>
             {file && <div className="capture-selected">Selected: <strong>{file.name}</strong></div>}
-            <div className="reference-lock-summary"><span className="section-label">REFERENCE-CARD LOCK</span><div className="reference-lock-grid"><span className={cardLock.cardDetected ? "lock-ok" : ""}>{cardLock.cardDetected ? "✓" : "○"} Card detected</span><span className={cardLock.perspectiveOk ? "lock-ok" : ""}>{cardLock.perspectiveOk ? "✓" : "○"} Perspective aligned</span><span className={cardLock.reactionAreaOk ? "lock-ok" : ""}>{cardLock.reactionAreaOk ? "✓" : "○"} Reaction area clear</span><span className={cardLock.calibrationReady ? "lock-ok" : ""}>{cardLock.calibrationReady ? "✓" : "○"} Calibration ready</span></div><small>{cardLock.message}</small></div>
+            <div className="reference-lock-summary"><span className="section-label">REFERENCE-CARD LOCK</span><div className="reference-lock-grid"><span className={cardLock.cardDetected ? "lock-ok" : ""}>{cardLock.cardDetected ? "✓" : "○"} Card detected</span><span className={cardLock.perspectiveOk ? "lock-ok" : ""}>{cardLock.perspectiveOk ? "✓" : "○"} 4-corner geometry</span><span className={cardLock.reactionAreaOk ? "lock-ok" : ""}>{cardLock.reactionAreaOk ? "✓" : "○"} Reaction ROI clear</span><span className={cardLock.calibrationReady ? "lock-ok" : ""}>{cardLock.calibrationReady ? "✓" : "○"} Calibration ready</span></div><small>{cardLock.message}</small></div>
             <div className="capture-guidance">
               <span className="section-label">IN-FRAME CHECK</span>
               <span>1. Reference card visible · 2. Reaction area visible · 3. Avoid glare and blur</span>
