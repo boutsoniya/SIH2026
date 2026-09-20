@@ -5,6 +5,7 @@ from anti_spoof import screen_spoof_signal
 from calibration import calibrate_from_reference, detect_reference_card
 from ciede2000 import compare_to_reference
 from features import extract_color_features
+from geometry import validate_card_geometry, normalize_card
 from model import predict
 from quality import quality_gate, validate_reference
 from reagent import parse_reagent_qr
@@ -18,7 +19,7 @@ def polygon_box(polygon):
     return [int(x), int(y), int(w), int(h)]
 
 
-def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id: str | None = None) -> dict:
+def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id: str | None = None, card_geometry: dict | None = None) -> dict:
     array = np.frombuffer(payload, dtype=np.uint8)
     image = cv2.imdecode(array, cv2.IMREAD_COLOR)
     if image is None:
@@ -30,9 +31,13 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
         }
 
     quality = quality_gate(image)
+    supplied_geometry = validate_card_geometry(card_geometry, image.shape) if card_geometry else {"valid": False, "status": "not_supplied"}
     reference = detect_reference_card(image)
     reference_box = polygon_box(reference)
     reference_check = validate_reference(reference_box, image.shape)
+    if supplied_geometry.get("valid"):
+        reference_check = {"usable": True, "reason": "Validated capture geometry supplied."}
+        reference_box = [int(min(p[0] for p in supplied_geometry["card_corners"])), int(min(p[1] for p in supplied_geometry["card_corners"])), int(max(p[0] for p in supplied_geometry["card_corners"]) - min(p[0] for p in supplied_geometry["card_corners"])), int(max(p[1] for p in supplied_geometry["card_corners"]) - min(p[1] for p in supplied_geometry["card_corners"]))]
     quality["reference_card"] = reference_check
 
     spoof = screen_spoof_signal(image)
@@ -65,6 +70,7 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
             "anti_spoof": spoof,
             "reagent": reagent,
             "evidence_bag_id": evidence_bag_id,
+            "card_geometry": supplied_geometry,
             "calibration": {"status": "blocked", "method": "reference_card"},
             "roi": None,
             "features": None,
@@ -76,7 +82,15 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
         }
 
     calibration = calibrate_from_reference(image, reference_box)
-    roi = detect_reaction_roi(image, reference)
+    if supplied_geometry.get("valid"):
+        normalized_card = normalize_card(image, supplied_geometry)
+        roi = tuple(int(v) for v in supplied_geometry["reaction_roi"]) if supplied_geometry.get("reaction_roi") else detect_reaction_roi(image, reference)
+        calibration["geometry_source"] = supplied_geometry.get("source", "browser_guidance")
+        calibration["homography"] = supplied_geometry["homography"]
+        calibration["normalized_size"] = supplied_geometry["normalized_size"]
+    else:
+        normalized_card = None
+        roi = detect_reaction_roi(image, reference)
 
     if roi is None:
         return {
@@ -89,6 +103,7 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
             "reagent": reagent,
             "evidence_bag_id": evidence_bag_id,
             "calibration": calibration,
+        "card_geometry": supplied_geometry,
             "roi": None,
             "features": None,
             "next_action": "Reaction area could not be located. Reframe the test and recapture.",
