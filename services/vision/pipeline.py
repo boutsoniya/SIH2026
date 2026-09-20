@@ -3,6 +3,7 @@ import numpy as np
 
 from anti_spoof import screen_spoof_signal
 from calibration import calibrate_from_reference, detect_reference_card
+from ciede2000 import compare_to_reference
 from features import extract_color_features
 from model import predict
 from quality import quality_gate, validate_reference
@@ -99,6 +100,10 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
 
     features_result = extract_color_features(image, roi)
     inference = predict(features_result.get("features", {}))
+    measured = features_result.get("features", {})
+    measured_lab = (measured.get("mean_l"), measured.get("mean_a"), measured.get("mean_b"))
+    target_lab = reagent.get("target_lab") if reagent.get("valid") else None
+    color_distance = compare_to_reference(measured_lab, target_lab) if target_lab else {"status": "not_configured", "delta_e_00": None}
 
     return {
         "status": "ready_for_inference",
@@ -111,6 +116,7 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
         "evidence_bag_id": evidence_bag_id,
         "roi": roi,
         "features": features_result,
+        "color_distance": color_distance,
         "color_interpretation": features_result.get("color_interpretation"),
         "explanation": (
             "Image quality, reference-card validation, anti-spoof screening, calibration "
