@@ -24,11 +24,15 @@ def parse_reagent_qr(payload):
     except ValueError:
         return {"valid": False, "reason": "Expiry must use YYYY-MM-DD."}
     expired = expiry < date.today()
+    target_lab = data.get("target_lab")
+    if target_lab is not None and (not isinstance(target_lab, list) or len(target_lab) != 3):
+        target_lab = None
     return {
         "valid": True,
         "expired": expired,
         "kit": kit,
         "lot": lot,
         "expires": expires,
+        "target_lab": target_lab,
         "reason": "Reagent expired." if expired else "Reagent metadata valid.",
     }
