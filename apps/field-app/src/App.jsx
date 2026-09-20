@@ -339,6 +339,23 @@ export default function App() {
       integrity_status: 'UNVERIFIED',
       analysis_status: analysis?.status || 'offline_demo',
       quality: analysis?.quality || null,
+      capture_device: {
+        user_agent: navigator.userAgent,
+        platform: navigator.platform || 'unknown',
+        language: navigator.language || 'unknown',
+      },
+      chain_of_custody: [
+        {
+          event: 'CAPTURED',
+          timestamp: new Date().toISOString(),
+          actor: operatorId.trim() || 'UNSPECIFIED-OPERATOR',
+        },
+        {
+          event: 'SEALED',
+          timestamp: new Date().toISOString(),
+          actor: operatorId.trim() || 'UNSPECIFIED-OPERATOR',
+        },
+      ],
     };
 
     const record = await signEvidenceRecord(baseRecord);
@@ -348,7 +365,7 @@ export default function App() {
     const locationNote = gps ? 'GPS captured.' : 'GPS unavailable or permission was denied; record retained with GPS marked unavailable.';
     const signatureNote = record.signature ? 'ECDSA signature created.' : 'Signature unavailable.';
     await refreshQueue();
-    setIntegrityMessage(`Evidence sealed locally. Image SHA-256 + record hash + ECDSA signature created. ${locationNote} ${signatureNote}`);
+    setIntegrityMessage(`Evidence sealed locally. Image SHA-256 + record hash + ECDSA signature created. Chain-of-custody captured. ${locationNote} ${signatureNote}`);
     setStep(3);
   };
 

@@ -1,18 +1,11 @@
 import cv2
 import numpy as np
+
 from calibration import calibrate_from_reference, detect_reference_card
 from features import extract_color_features
 from model import predict
+from quality import quality_gate, validate_reference
 from roi import detect_reaction_roi
-
-
-def quality_gate(image: np.ndarray) -> dict:
-    height, width = image.shape[:2]
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    brightness = float(np.mean(gray))
-    sharpness = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-    checks = {"resolution": width >= 200 and height >= 150, "brightness": 40 <= brightness <= 220, "sharpness": sharpness >= 100}
-    return {"passed": all(checks.values()), "width": width, "height": height, "brightness": round(brightness, 2), "sharpness": round(sharpness, 2), "checks": checks}
 
 
 def polygon_box(polygon):
@@ -26,25 +19,25 @@ def analyze_image(payload: bytes) -> dict:
     array = np.frombuffer(payload, dtype=np.uint8)
     image = cv2.imdecode(array, cv2.IMREAD_COLOR)
     if image is None:
-        return {"status": "invalid_image", "result": "INCONCLUSIVE"}
+        return {
+            "status": "invalid_image",
+            "result": "INCONCLUSIVE",
+            "confidence": None,
+            "next_action": "Capture a valid image of the complete test area.",
+        }
 
     quality = quality_gate(image)
     reference = detect_reference_card(image)
     reference_box = polygon_box(reference)
-    quality["capture_guidance"] = []
+    reference_check = validate_reference(reference_box, image.shape)
+    quality["reference_card"] = reference_check
 
-    if not quality["checks"]["resolution"]:
-        quality["capture_guidance"].append("Move closer so the test reaction fills more of the frame.")
-    if quality["brightness"] < 70:
-        quality["capture_guidance"].append("Image is dark. Use even ambient light and avoid strong shadows.")
-    elif quality["brightness"] > 190:
-        quality["capture_guidance"].append("Image is bright. Reduce glare and avoid direct flash on the test area.")
-    if quality["sharpness"] < 150:
-        quality["capture_guidance"].append("Image may be blurred. Hold the device steady and recapture.")
-    if reference_box is None:
-        quality["capture_guidance"].append("Reference colour card was not detected. Keep the full card visible and unobstructed.")
-    if not quality["capture_guidance"]:
-        quality["capture_guidance"].append("Capture conditions look suitable for the next analysis stage.")
+    if not reference_check["usable"]:
+        quality["passed"] = False
+        quality["capture_guidance"].append(
+            reference_check["reason"] or
+            "Keep the complete reference card visible and unobstructed."
+        )
 
     if not quality["passed"]:
         return {
@@ -53,11 +46,36 @@ def analyze_image(payload: bytes) -> dict:
             "confidence": None,
             "quality": quality,
             "reference_card": reference_box,
+            "calibration": {"status": "blocked", "method": "reference_card"},
+            "roi": None,
+            "features": None,
             "next_action": quality["capture_guidance"][0],
+            "explanation": (
+                "The evidence was not strong enough to continue. "
+                "The system halted before interpretation rather than forcing a result."
+            ),
         }
 
     calibration = calibrate_from_reference(image, reference_box)
     roi = detect_reaction_roi(image, reference)
+
+    if roi is None:
+        return {
+            "status": "analysis_blocked",
+            "result": "INCONCLUSIVE",
+            "confidence": None,
+            "quality": quality,
+            "reference_card": reference_box,
+            "calibration": calibration,
+            "roi": None,
+            "features": None,
+            "next_action": "Reaction area could not be located. Reframe the test and recapture.",
+            "explanation": (
+                "The reaction region could not be isolated reliably, so no colour "
+                "interpretation was produced."
+            ),
+        }
+
     features_result = extract_color_features(image, roi)
     inference = predict(features_result.get("features", {}))
 
@@ -70,5 +88,10 @@ def analyze_image(payload: bytes) -> dict:
         "roi": roi,
         "features": features_result,
         "color_interpretation": features_result.get("color_interpretation"),
-        "explanation": "Image quality, reference-card candidate detection and reaction ROI feature extraction completed. The observed colour is reported separately from substance identification. No validated field model is attached, so the safe result remains inconclusive.",
+        "explanation": (
+            "Image quality, reference-card validation, calibration and reaction-ROI "
+            "feature extraction completed. The observed colour is reported separately "
+            "from substance identification. No validated field model is attached, "
+            "so the safe result remains inconclusive."
+        ),
     }
