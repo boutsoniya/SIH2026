@@ -458,40 +458,60 @@ export default function App() {
         {step === 1 && <div className="panel split">
           <div className="calibration-visual">
             <div className="demo-preview">
-              <div className="demo-preview-head"><span className={offline ? "live-chip" : "live-chip live-chip-live"}>● {offline ? "OFFLINE DEMO" : "LIVE CAPTURE"}</span><span>{offline ? "REFERENCE CARD VIEW" : "CAPTURED IMAGE"}</span></div>
-              <div className="demo-card">
+              <div className="demo-preview-head"><span className={offline ? "live-chip" : "live-chip live-chip-live"}>● {offline ? "OFFLINE DEMO" : "LIVE CAPTURE"}</span><span>{offline ? "REFERENCE CARD VIEW" : "CAPTURED IMAGE REVIEW"}</span></div>
+              {offline ? <><div className="demo-card">
                 <div className="demo-card-brand">NARCOSCOPE</div>
                 <div className="demo-card-title">REFERENCE COLOUR CARD</div>
                 <div className="demo-swatches">{demoPalette.map(({ key, hex }) => <button type="button" key={key} className={demoCase === key ? 'demo-swatch selected' : 'demo-swatch'} style={{ background: hex }} onClick={() => { setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }} aria-label={`Select ${DEMO_CASES[key].display_name}`} />)}</div>
               </div>
-              <div className="demo-test-kit"><div className="kit-brand">NARCOSCOPE</div><div className="kit-window">{demoCase ? <span style={{ background: DEMO_CASES[demoCase].hex }} /> : <span className="unselected-dot" />}</div><div className="kit-well" /></div>
-              <div className="demo-preview-foot">{offline ? <><span>Image quality: Good</span><span>Card: Detected</span><span>Colour match: {demoCase ? 'Selected' : 'Waiting'}</span></> : <><span>Image quality: {analysis?.quality?.passed ? 'Pass' : 'Review'}</span><span>Card: {analysis?.reference_card ? 'Detected' : 'Review'}</span><span>ROI: {analysis?.roi ? 'Detected' : 'Review'}</span></>}</div>
+              <div className="demo-test-kit"><div className="kit-brand">NARCOSCOPE</div><div className="kit-window">{demoCase ? <span style={{ background: DEMO_CASES[demoCase].hex }} /> : <span className="unselected-dot" />}</div><div className="kit-well" /></div></> : <div className="captured-image-wrap"><img src={previewUrl} alt="Captured field test" /><div className="image-target reference-target">REFERENCE CARD</div><div className="image-target reaction-target">REACTION AREA</div></div>}
+              <div className="demo-preview-foot">{offline ? <><span>Image quality: Good</span><span>Card: Detected</span><span>Colour match: {demoCase ? 'Selected' : 'Waiting'}</span></> : <><span>Image: {analysis?.quality?.passed ? 'Ready' : 'Review'}</span><span>Card: {analysis?.reference_card ? 'Detected' : 'Not detected'}</span><span>ROI: {analysis?.roi ? 'Detected' : 'Not detected'}</span></>}</div>
             </div>
           </div>
           <div>
             <span className="eyebrow">STEP 02</span>
-            <div className="offline-badge">OFFLINE DEMO / SIMULATED CALIBRATION</div>
-            <h3>Match the reaction colour</h3>
-            <p className="muted">{offline ? "Look at the reaction area and tap the closest matching colour on the reference card. Start with the observed colour — the app will explain the associated example after selection." : "Review the image-quality gate, reference-card detection and reaction ROI before continuing to the presumptive result."}</p>
+            <div className="offline-badge">{offline ? "OFFLINE DEMO / SIMULATED CALIBRATION" : "LIVE IMAGE / SERVER ANALYSIS"}</div>
+            <h3>{offline ? "Match the reaction colour" : "Review capture & calibration"}</h3>
+            <p className="muted">{offline ? "Match the reaction area to the reference colour card. The demo deliberately waits for your selection." : "NARCOSCOPE has already run the image quality gate and reference-card candidate detection. Review the capture quality before moving to the presumptive interpretation."}</p>
 
-            {!offline && <div className="quality-summary"><div><span className="section-label">IMAGE</span><strong>{analysis?.quality?.width || '—'} × {analysis?.quality?.height || '—'}</strong><small>resolution</small></div><div><span className="section-label">BRIGHTNESS</span><strong>{analysis?.quality?.brightness ?? '—'}</strong><small>mean intensity</small></div><div><span className="section-label">SHARPNESS</span><strong>{analysis?.quality?.sharpness ?? '—'}</strong><small>Laplacian variance</small></div><div><span className="section-label">CALIBRATION</span><strong>{analysis?.calibration?.status || '—'}</strong><small>reference baseline</small></div></div>}
-            <div className="professional-section">
+            {!offline && <div className="quality-summary">
+              <div><span className="section-label">IMAGE</span><strong>{analysis?.quality?.width || '—'} × {analysis?.quality?.height || '—'}</strong><small>resolution</small></div>
+              <div><span className="section-label">BRIGHTNESS</span><strong>{analysis?.quality?.brightness ?? '—'}</strong><small>mean intensity</small></div>
+              <div><span className="section-label">SHARPNESS</span><strong>{analysis?.quality?.sharpness ?? '—'}</strong><small>Laplacian variance</small></div>
+              <div><span className="section-label">CALIBRATION</span><strong>{analysis?.calibration?.status || '—'}</strong><small>reference baseline</small></div>
+            </div>}
+
+            {!offline && <div className="professional-section">
+              <div className="section-header-row"><div><span className="section-label">AUTOMATED OBSERVATION</span><strong>{analysis?.color_interpretation?.display_name || 'Colour not available'}</strong></div><span className="selection-status">{analysis?.color_interpretation ? 'MEASURED' : 'REVIEW'}</span></div>
+              <div className="match-summary">
+                <div className="match-preview">{analysis?.color_interpretation?.hex ? <span style={{ background: analysis.color_interpretation.hex }} /> : <span className="empty-match">?</span>}</div>
+                <div><strong>{analysis?.color_interpretation?.family || 'Reaction colour awaiting review'}</strong><p>{analysis?.color_interpretation?.description || 'The reaction ROI could not be interpreted from the current image.'}</p></div>
+              </div>
+              {analysis?.quality?.capture_guidance?.length > 0 && <div className="capture-coach"><span className="section-label">CAPTURE COACH</span>{analysis.quality.capture_guidance.map((tip) => <div key={tip}>• {tip}</div>)}</div>}
+            </div>}
+
+            {offline && <div className="professional-section">
               <div className="section-header-row"><div><span className="section-label">1 · SELECT OBSERVED COLOUR</span><strong>{demoCase ? DEMO_CASES[demoCase].display_name : 'Nothing selected yet'}</strong></div><span className="selection-status">{demoCase ? 'MATCHED' : 'SELECT ONE'}</span></div>
               <div className="colour-choice-grid">{demoPalette.map(({ key, label, hex }) => <button type="button" key={key} className={demoCase === key ? 'colour-choice selected' : 'colour-choice'} onClick={() => { setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }}><span className="choice-swatch" style={{ background: hex }} /><span>{label}</span>{demoCase === key && <span className="choice-check">✓</span>}</button>)}</div>
-            </div>
+            </div>}
 
-            <div className="professional-section">
+            {offline && <div className="professional-section">
               <span className="section-label">2 · REFERENCE CARD INTERPRETATION</span><div className="interpretation-warning">Reference-card match ≠ confirmed substance</div>
               <div className="match-summary">
                 <div className="match-preview">{demoCase ? <span style={{ background: DEMO_CASES[demoCase].hex }} /> : <span className="empty-match">?</span>}</div>
                 <div><strong>{demoCase ? DEMO_CASES[demoCase].possible_match : 'Choose a colour to see the example association'}</strong><p>{demoCase ? DEMO_CASES[demoCase].plain_meaning : 'This demo deliberately does not preselect a colour. The officer makes the visual match first.'}</p></div>
               </div>
-            </div>
+            </div>}
 
-            <div className="metrics"><div><strong>PASS</strong><span>image quality</span></div><div><strong>FOUND</strong><span>reference card</span></div><div><strong>{demoCase ? 'READY' : 'WAITING'}</strong><span>colour match</span></div></div>
+            {!offline && <div className="professional-section">
+              <span className="section-label">REFERENCE-CARD CALIBRATION</span><div className="match-summary"><div className="match-preview"><span className="empty-match">✓</span></div><div><strong>{analysis?.calibration?.status === 'ready' ? 'Baseline captured' : 'Calibration requires review'}</strong><p>{analysis?.calibration?.method || 'Reference-card calibration status returned by the vision service.'}</p></div></div>
+            </div>}
 
-            <div className="notice">Offline demo uses synthetic colour cases to demonstrate the interaction. Colour associations are illustrative and kit-specific; they are not chemical identifications.</div>
-            <button className="primary" onClick={next} disabled={!demoCase}>Continue to analysis →</button>
+            <div className="metrics"><div><strong>{analysis?.quality?.passed ? 'PASS' : 'REVIEW'}</strong><span>image quality</span></div><div><strong>{analysis?.reference_card ? 'FOUND' : 'REVIEW'}</strong><span>reference card</span></div><div><strong>{offline ? (demoCase ? 'READY' : 'WAITING') : (analysis?.roi ? 'FOUND' : 'REVIEW')}</strong><span>{offline ? 'colour match' : 'reaction ROI'}</span></div></div>
+
+            {offline && <div className="notice">Offline demo uses synthetic colour cases to demonstrate the interaction. Colour associations are illustrative and kit-specific; they are not chemical identifications.</div>}
+            {!offline && analysis?.quality?.passed && !analysis?.reference_card && <div className="notice">The image quality passed, but the reference card could not be detected. Recapture with the full reference card visible before relying on colour interpretation.</div>}
+            <button className="primary" onClick={next} disabled={offline ? !demoCase : !analysis}>Continue to analysis →</button>
           </div>
         </div>}
 
