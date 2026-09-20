@@ -5,6 +5,7 @@ import { analyzeImage, checkVisionHealth } from './visionApi';
 import { computeRecordHash, sha256Hex, signEvidenceRecord, verifyImageBlob, verifyRecord, verifySignature } from './evidenceCrypto';
 import { AuditReplay, VerificationPortal } from './forensicViews';
 import ReferenceCardLock from './ReferenceCardLock';
+import InvestigatorPortal from './InvestigatorPortal';
 
 const steps = ['Capture', 'Calibrate', 'Analyze', 'Evidence'];
 const DEMO_CASES = {
@@ -272,7 +273,9 @@ export default function App() {
   useEffect(() => {
     if (!cameraOpen || !cameraActive) return undefined;
     const timer = window.setInterval(evaluateLiveFrame, 650);
-    return () => window.clearInterval(timer);
+    const showInvestigatorPortal = typeof window !== 'undefined' && window.location.hash === '#verify';
+
+  return () => window.clearInterval(timer);
   }, [cameraOpen, cameraActive]);
   useEffect(() => () => stopCamera(), []);
 
