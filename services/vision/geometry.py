@@ -59,12 +59,16 @@ def validate_card_geometry(geometry, image_shape):
 
     reaction = geometry.get("reaction_roi")
     reaction_norm = None
+    reaction_pixels = None
     if reaction:
         try:
             rx, ry, rw, rh = [float(reaction[k]) for k in ("x", "y", "width", "height")]
             if geometry.get("coordinate_space") == "normalized":
                 rx, rw = rx * w, rw * w
                 ry, rh = ry * h, rh * h
+            if geometry.get("coordinate_space") == "normalized":
+                reaction_pixels = [rx * w, ry * h, rw * w, rh * h]
+                rx, ry, rw, rh = reaction_pixels
             if rw > 0 and rh > 0:
                 corners = np.float32([[rx, ry], [rx + rw, ry], [rx + rw, ry + rh], [rx, ry + rh]])
                 rn = cv2.perspectiveTransform(corners.reshape(1, 4, 2), matrix)[0]
@@ -83,6 +87,7 @@ def validate_card_geometry(geometry, image_shape):
         "normalized_size": [dst_w, dst_h],
         "normalized_corners": normalized.round(2).tolist(),
         "reaction_roi": reaction_norm,
+        "reaction_roi_pixels": [round(float(v), 2) for v in reaction_pixels] if reaction_pixels else None,
         "area_ratio": round(float(area / (w * h)), 5),
         "aspect_ratio": round(float(aspect), 4),
     }
