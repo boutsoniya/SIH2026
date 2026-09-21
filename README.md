@@ -47,39 +47,115 @@ The system is designed around the operational needs of field testing rather than
 
 ## Architecture
 
-```text
-Physical Test Kit
-      │
-      ├── Reagent QR / Kit Lot / Expiry
-      └── Evidence Bag ID
-      │
-      ▼
-Field Capture App
-      │
-      ├── Live Quality Coach
-      ├── Reference Card Lock
-      └── Reaction ROI
-      │
-      ▼
-Vision API
-      │
-      ├── Geometry Validation
-      ├── ArUco Verification
-      ├── Calibration
-      ├── Color / ROI Analysis
-      └── Uncertainty Gate
-      │
-      ▼
-Evidence Record
-      │
-      ├── SHA-256 + Signature
-      ├── Chain of Custody
-      └── Offline Ledger
-      │
-      ├──────────────► Audit Replay
-      ├──────────────► QR Verification
-      └──────────────► FSL Reconciliation
+The architecture is intentionally **evidence-first**: the system does not stop at image analysis. A physical field test is converted into a controlled capture, a calibrated analysis, a sealed evidence record, and an independently verifiable handoff.
+
+```mermaid
+flowchart LR
+    subgraph FIELD["Field Layer"]
+        KIT["Physical Test Kit"]
+        META["Reagent QR<br/>Kit / Lot / Expiry"]
+        BAG["Evidence Bag ID"]
+        APP["Field Capture App"]
+        COACH["Live Capture Coach"]
+        LOCK["Reference Card Lock"]
+        ROI["Reaction ROI"]
+        KIT --> META
+        KIT --> BAG
+        META --> APP
+        BAG --> APP
+        APP --> COACH --> LOCK --> ROI
+    end
+
+    subgraph VISION["Vision & Analysis Layer"]
+        API["Vision API<br/>FastAPI"]
+        Q["Quality Gate"]
+        GEO["Geometry Validation<br/>+ Homography"]
+        ARUCO["ArUco Reference-Card Check"]
+        CAL["Kit-Specific Calibration"]
+        LAB["LAB / CIEDE2000<br/>Color Analysis"]
+        SAFE["Uncertainty Gate"]
+        API --> Q --> GEO --> ARUCO --> CAL --> LAB --> SAFE
+    end
+
+    subgraph EVIDENCE["Evidence & Integrity Layer"]
+        REC["Evidence Record"]
+        HASH["SHA-256 + Signed Metadata"]
+        LEDGER["Offline / Hash-Chained Ledger"]
+        COC["Chain of Custody"]
+        REC --> HASH
+        REC --> COC
+        HASH --> LEDGER
+    end
+
+    subgraph VERIFY["Verification & Handoff Layer"]
+        SYNC["Evidence Sync"]
+        QR["QR / Manual Verification"]
+        AUDIT["Audit Replay"]
+        PORTAL["Investigator / FSL Portal"]
+        FSL["FSL Reconciliation"]
+        PACKET["Evidence Packet"]
+        SYNC --> QR
+        SYNC --> AUDIT
+        SYNC --> PORTAL --> FSL
+        PORTAL --> PACKET
+    end
+
+    ROI --> API
+    SAFE -->|Presumptive / INCONCLUSIVE| REC
+    LEDGER --> SYNC
 ```
+
+### End-to-end data flow
+
+```text
+Physical Test
+    ↓
+Controlled Capture
+    ↓
+Quality + Geometry Gate
+    ↓
+Reference Card Verification
+    ↓
+Kit Calibration
+    ↓
+LAB / CIEDE2000 Analysis
+    ↓
+Evidence Sufficiency Check
+    ├── insufficient → INCONCLUSIVE
+    └── sufficient   → Presumptive Interpretation
+                              ↓
+                       Evidence Record
+                              ↓
+                 Hash + Signature + Chain of Custody
+                              ↓
+                     Offline Ledger / Sync
+                              ↓
+             ┌────────────────┼────────────────┐
+             ↓                ↓                ↓
+        Audit Replay     QR Verification    FSL Handoff
+```
+
+### Evidence lifecycle
+
+```text
+CAPTURED → CALIBRATED → ANALYZED → SEALED → SYNCED
+                                  │
+                                  ├── VERIFY
+                                  ├── AUDIT REPLAY
+                                  └── FSL RECONCILIATION
+```
+
+### Architecture principles
+
+- **Controlled capture before analysis** — image quality, glare, geometry, and reaction-area framing are checked before the vision pipeline proceeds.
+- **Backend-authoritative verification** — browser framing assists the operator; geometry and ArUco checks are performed server-side.
+- **Kit-aware analysis** — color interpretation is tied to the supplied reagent/reference profile rather than a universal drug threshold.
+- **Safe uncertainty** — insufficient evidence can terminate in **INCONCLUSIVE** instead of forcing a binary result.
+- **Evidence as a first-class object** — image hash, device/context metadata, interpretation, chain of custody, integrity metadata, and reconciliation status travel together.
+- **Offline-first operation** — field records can be retained locally and synchronized later with conflict protection.
+- **Independent verification** — investigators/FSL personnel can verify integrity without reclassifying the substance.
+
+See [`docs/architecture/NARCOSCOPE_ARCHITECTURE.md`](docs/architecture/NARCOSCOPE_ARCHITECTURE.md) for the expanded architecture diagram and layer-by-layer design.
 
 ## Prototype boundary
 
