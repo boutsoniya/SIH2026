@@ -1,3 +1,4 @@
+import { test } from "node:test";
 import { appendEvidence, verifyLedger } from "./evidenceLedger.js";
 import assert from "node:assert/strict";
 
