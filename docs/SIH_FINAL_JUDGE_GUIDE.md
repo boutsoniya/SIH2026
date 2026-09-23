@@ -41,6 +41,8 @@
 
 ## 4. Technical differentiators
 
+- **Pre-lab evidence readiness:** checks whether the digital field evidence package is complete enough for the configured next handoff step; it does not decide laboratory acceptance or substance identity.
+
 - **Quality-gated acquisition:** evaluates the image before interpretation.
 - **Physical reference-card contract:** controlled optical reference with geometry and optional ArUco markers.
 - **Kit-specific calibration:** explicit calibration profiles rather than one universal color threshold.
@@ -127,6 +129,9 @@ The field workflow retains evidence locally and supports later synchronization.
 
 **How does the lab verify it?**  
 The verification portal and QR workflow retrieve the server-side evidence record and integrity state without silently changing the original interpretation.
+
+**What is pre-lab readiness?**  
+It is a completeness/readiness gate for the digital field evidence package—checking capture quality, reference card, reaction area, reagent metadata and evidence-bag linkage before handoff. It is not a decision about whether the physical sample must be sent to the lab.
 
 ## 10. Demo safety rule
 

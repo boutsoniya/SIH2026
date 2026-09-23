@@ -11,6 +11,7 @@ from geometry import validate_card_geometry, normalize_card
 from model import predict
 from quality import quality_gate, validate_reference
 from reagent import parse_reagent_qr
+from pre_lab_readiness import evaluate_pre_lab_readiness
 from roi import detect_reaction_roi
 
 
@@ -66,6 +67,13 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
         )
 
     if not quality["passed"]:
+        pre_lab = evaluate_pre_lab_readiness(
+            quality=quality,
+            reference_check=reference_check,
+            reaction_roi=None,
+            reagent=reagent,
+            evidence_bag_id=evidence_bag_id,
+        )
         return {
             "status": "quality_rejected",
             "result": "INCONCLUSIVE",
@@ -80,6 +88,7 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
             "aruco": aruco,
             "calibration": {"status": "blocked", "method": "reference_card"},
             "roi": None,
+            "pre_lab_readiness": pre_lab,
             "features": None,
             "next_action": quality["capture_guidance"][0],
             "explanation": (
@@ -100,6 +109,13 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
         roi = detect_reaction_roi(image, reference)
 
     if roi is None:
+        pre_lab = evaluate_pre_lab_readiness(
+            quality=quality,
+            reference_check=reference_check,
+            reaction_roi=None,
+            reagent=reagent,
+            evidence_bag_id=evidence_bag_id,
+        )
         return {
             "status": "analysis_blocked",
             "result": "INCONCLUSIVE",
@@ -111,6 +127,7 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
             "evidence_bag_id": evidence_bag_id,
             "calibration": {**calibration, "color_calibration": color_calibration},
         "card_geometry": supplied_geometry,
+            "pre_lab_readiness": pre_lab,
             "roi": None,
             "features": None,
             "next_action": "Reaction area could not be located. Reframe the test and recapture.",
@@ -144,6 +161,13 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
     measured_lab = (measured.get("mean_l"), measured.get("mean_a"), measured.get("mean_b"))
     target_lab = reagent.get("target_lab") if reagent.get("valid") else None
     color_distance = compare_to_reference(measured_lab, target_lab) if target_lab else {"status": "not_configured", "delta_e_00": None}
+    pre_lab = evaluate_pre_lab_readiness(
+        quality=quality,
+        reference_check=quality.get("reference_card"),
+        reaction_roi=roi,
+        reagent=reagent,
+        evidence_bag_id=evidence_bag_id,
+    )
 
     return {
         "status": "ready_for_inference",
@@ -157,6 +181,7 @@ def analyze_image(payload: bytes, reagent_qr: str | None = None, evidence_bag_id
         "roi": roi,
         "features": features_result,
         "color_distance": color_distance,
+        "pre_lab_readiness": pre_lab,
         "color_interpretation": features_result.get("color_interpretation"),
         "explanation": (
             "Image quality, reference-card validation, anti-spoof screening, calibration "

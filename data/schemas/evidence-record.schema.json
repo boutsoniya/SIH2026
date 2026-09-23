@@ -133,6 +133,41 @@
         "matched_ids": { "type": "array", "items": { "type": "integer" } }
       }
     },
+    "pre_lab_readiness": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "READY",
+            "REVIEW_REQUIRED",
+            "RECAPTURE_REQUIRED"
+          ]
+        },
+        "ready_for_handoff": {
+          "type": "boolean"
+        },
+        "checks": {
+          "type": "object"
+        },
+        "next_action": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "ready_for_handoff",
+        "checks",
+        "next_action",
+        "note"
+      ]
+    },
     "quality": {
       "type": [
         "object",

@@ -14,6 +14,7 @@ The following can be tested deterministically in CI:
 - anti-spoof signals
 - evidence ledger integrity
 - FSL reconciliation rules
+- pre-lab evidence readiness rules
 
 Final field classification must be backed by a kit-specific validated reference profile and representative physical dataset. The repository does not treat synthetic examples as evidence of real-world accuracy.
 
@@ -33,3 +34,7 @@ Keep ground truth and acquisition metadata separate from the model under test. R
 ## Release gate
 
 Do not label a kit profile as validated until its dataset, protocol, thresholds, and acceptance criteria have been reviewed by the responsible technical/forensic authority.
+
+## Pre-lab readiness validation boundary
+
+The pre-lab readiness engine is an evidence/documentation completeness check. Its READY state means the configured field-evidence checks passed; it is not laboratory acceptance, legal triage, chemical confirmation, or evidence of forensic classification accuracy. Unit tests cover READY, REVIEW_REQUIRED and RECAPTURE_REQUIRED states, including incomplete metadata and failed capture conditions.

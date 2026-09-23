@@ -237,3 +237,16 @@ A field test should not end at “detected / not detected.”
 It should produce a controlled, traceable and independently verifiable evidence record.
 
 **Capture → Validate → Calibrate → Analyze → Seal → Verify → Handoff**
+
+
+## v16 precision update for the 6-slide deck
+
+### Core narrative
+**Existing colorimetric field test → NARCOSCOPE → controlled digital evidence → pre-lab readiness → laboratory confirmation**
+
+### Pre-lab readiness wording
+Use: **“Pre-lab evidence readiness”** or **“Field evidence handoff readiness.”**
+Avoid: “decides whether the sample should go to the lab,” “lab approval,” or “lab acceptance.”
+
+### Judge-safe definition
+“Checks whether capture quality, reference-card evidence, reaction ROI, reagent metadata and evidence-bag linkage are complete enough for the configured next handoff step. It does not determine laboratory acceptance or confirm substance identity.”

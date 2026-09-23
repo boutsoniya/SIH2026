@@ -57,7 +57,15 @@ flowchart LR
 - Quality/validation gates
 - INCONCLUSIVE path
 
-### 5. Evidence layer
+### 5. Pre-lab evidence readiness layer
+- Field-evidence completeness checks
+- Capture/reference/ROI readiness
+- Reagent kit/lot/expiry metadata check
+- Evidence-bag linkage check
+- READY / REVIEW_REQUIRED / RECAPTURE_REQUIRED states
+- Explicitly not a laboratory acceptance or substance-identification decision
+
+### 6. Evidence layer
 - SHA-256
 - Signed metadata
 - Chain of custody
@@ -65,7 +73,7 @@ flowchart LR
 - Offline-first storage
 - Sync conflict protection
 
-### 6. Verification layer
+### 7. Verification layer
 - QR verification
 - Investigator portal
 - FSL reconciliation

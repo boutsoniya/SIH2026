@@ -7,6 +7,7 @@ import { AuditReplay, VerificationPortal } from './forensicViews';
 import ReferenceCardLock from './ReferenceCardLock';
 import InvestigatorPortal from './InvestigatorPortal';
 import QuickVerify from './QuickVerify';
+import { evaluatePreLabReadiness } from './preLabReadiness';
 
 const steps = ['Capture', 'Calibrate', 'Analyze', 'Evidence'];
 const DEMO_CASES = {
@@ -115,6 +116,12 @@ function makeDemoAnalysis(key) {
     },
     demo_case: demo.label,
     demo_note: demo.note,
+    pre_lab_readiness: evaluatePreLabReadiness({
+      quality: { passed: true },
+      reference_card: [0, 0, 1, 1],
+      roi: [0, 0, 1, 1],
+      reagent: { valid: true, expired: false },
+    }, { evidenceBagId: 'BAG-DEMO-2026-001' }),
     explanation: demo.note
   };
 }
@@ -327,7 +334,7 @@ export default function App() {
         } : null,
       } : null;
       const result = await analyzeImage(file, { reagentQr, evidenceBagId, cardGeometry });
-      setAnalysis(result);
+      setAnalysis({ ...result, pre_lab_readiness: result?.pre_lab_readiness || evaluatePreLabReadiness(result, { evidenceBagId }) });
       setOffline(false);
       if (result?.status === 'quality_rejected') {
         setAnalysisError(result.next_action || 'Quality gate halted the workflow. Recapture with better framing and lighting.');
@@ -396,6 +403,7 @@ export default function App() {
       evidence_bag_id: evidenceBagId.trim() || null,
       reagent_qr: reagentQr.trim() || null,
       reagent: analysis?.reagent || null,
+      pre_lab_readiness: evaluatePreLabReadiness(analysis, { evidenceBagId }),
       card_geometry: analysis?.card_geometry || null,
       aruco: analysis?.aruco || null,
       anti_spoof: analysis?.anti_spoof || null,
@@ -602,6 +610,7 @@ export default function App() {
             </div>}
 
             <div className="metrics"><div><strong>{analysis?.quality?.passed ? 'PASS' : 'REVIEW'}</strong><span>image quality</span></div><div><strong>{analysis?.reference_card ? 'FOUND' : 'REVIEW'}</strong><span>reference card</span></div><div><strong>{offline ? (demoCase ? 'READY' : 'WAITING') : (analysis?.roi ? 'FOUND' : 'REVIEW')}</strong><span>{offline ? 'colour match' : 'reaction ROI'}</span></div></div>
+            {analysis && <div className="prelab-card"><div className="prelab-head"><div><span className="section-label">PRE-LAB READINESS</span><strong>{(analysis.pre_lab_readiness || evaluatePreLabReadiness(analysis, { evidenceBagId })).status.replaceAll('_', ' ')}</strong></div><span className={(analysis.pre_lab_readiness || evaluatePreLabReadiness(analysis, { evidenceBagId })).ready_for_handoff ? 'prelab-status ready' : 'prelab-status review'}>{(analysis.pre_lab_readiness || evaluatePreLabReadiness(analysis, { evidenceBagId })).ready_for_handoff ? 'READY FOR HANDOFF' : 'REVIEW / RECAPTURE'}</span></div><p className="prelab-note">Checks whether the digital field evidence package is complete for the next handoff step. It does not decide laboratory acceptance or replace forensic confirmation.</p><div className="prelab-checks">{(analysis.pre_lab_readiness || evaluatePreLabReadiness(analysis, { evidenceBagId })).checks.map((item) => <div key={item.key} className={item.ok ? 'prelab-check ok' : 'prelab-check'}><span>{item.ok ? '✓' : '!'}</span><div><strong>{item.label}</strong><small>{item.message}</small></div></div>)}</div></div>}
 
             {offline && <div className="notice">Offline demo uses synthetic colour cases to demonstrate the interaction. Colour associations are illustrative and kit-specific; they are not chemical identifications.</div>}
             {!offline && analysis?.quality?.passed && !analysis?.reference_card && <div className="notice">The image quality passed, but the reference card could not be detected. Recapture with the full reference card visible before relying on colour interpretation.</div>}

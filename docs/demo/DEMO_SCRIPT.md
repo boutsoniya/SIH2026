@@ -60,6 +60,12 @@ Show FSL reconciliation.
 **Say:**
 “The downstream workflow is read-only verification plus laboratory reconciliation. Verification does not silently reclassify the substance.”
 
+## 7.5 Pre-lab readiness — 20 seconds
+**Show:** the PRE-LAB READINESS panel after analysis.
+
+**Say:**
+“Before handoff, NARCOSCOPE checks whether the digital field evidence package is complete enough for the next documented step. This checks capture and documentation readiness; it does not decide laboratory acceptance or confirm the substance.”
+
 ## 8. Failure scenario — 25 seconds
 Choose one:
 - poor capture
