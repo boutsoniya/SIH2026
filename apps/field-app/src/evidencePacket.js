@@ -45,6 +45,7 @@ export async function buildEvidencePacket(record) {
       status: record.fsl_status || 'PENDING',
       laboratory_reference: record.laboratory_reference || null,
     },
+    pre_lab_readiness: record.pre_lab_readiness || null,
     audit: {
       sync_status: record.sync_status || 'QUEUED',
       integrity_status: record.integrity_status || 'UNVERIFIED',
@@ -74,6 +75,7 @@ export async function printEvidencePacket(packet) {
     ['Outcome', packet.case.result],
     ['Operator', packet.case.operator_id || 'Not recorded'],
     ['Timestamp', packet.case.timestamp || 'Not recorded'],
+    ['Pre-lab readiness', packet.pre_lab_readiness?.status || 'Not assessed'],
     ['FSL status', packet.fsl_reconciliation.status],
     ['Image SHA-256', packet.integrity.image_sha256 || 'Not recorded'],
     ['Record hash', packet.integrity.record_hash || 'Not recorded'],
@@ -87,6 +89,7 @@ export async function printEvidencePacket(packet) {
   ${qrDataUrl ? '<div style="display:flex;align-items:center;gap:16px;margin:16px 0"><img src="' + qrDataUrl + '" width="120" height="120" alt="Verification QR"><div><strong>One-scan verification</strong><div>Scan this QR in the Investigator portal.</div><div style="color:#64748b;margin-top:5px">Verification ID: ' + escape(packet.verification_id) + '</div></div></div>' : ''}<h2>Case Summary</h2><table>${rows.map(([a,b]) => `<tr><td>${escape(a)}</td><td class="${a.toLowerCase().includes('hash')?'mono':''}">${escape(b)}</td></tr>`).join('')}</table>
   <h2>Analytical Chain</h2><pre>${escape(JSON.stringify(packet.analytical_chain,null,2))}</pre>
   <h2>Chain of Custody</h2><pre>${escape(JSON.stringify(packet.chain_of_custody,null,2))}</pre>
+  <h2>Pre-Lab Readiness</h2><pre>${escape(JSON.stringify(packet.pre_lab_readiness,null,2))}</pre>
   <h2>Integrity & Reconciliation</h2><pre>${escape(JSON.stringify({integrity:packet.integrity,fsl_reconciliation:packet.fsl_reconciliation,audit:packet.audit},null,2))}</pre>
   <div class="notice"><strong>Interpretation notice:</strong> A field result is presumptive/inconclusive and does not replace laboratory confirmation.</div>
   <script>window.onload=()=>window.print()</script></body></html>`;
