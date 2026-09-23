@@ -25,6 +25,17 @@ The system is designed around the operational needs of field testing rather than
 9. **Independent verification** — investigator/FSL portal and one-scan QR verification.
 10. **FSL handoff** — reconciliation status without mutating the original field evidence.
 
+## Pre-lab evidence readiness (v16)
+
+NARCOSCOPE adds a **pre-lab evidence readiness** gate between field testing and downstream laboratory handoff. It checks whether the digital field evidence package is complete enough for the next documented step: capture quality, reference-card evidence, reaction ROI, reagent kit/lot/expiry metadata, and evidence-bag linkage.
+
+The readiness states are:
+- **READY** — configured capture/documentation checks passed.
+- **REVIEW_REQUIRED** — metadata is missing or needs review.
+- **RECAPTURE_REQUIRED** — the captured evidence itself is not usable.
+
+This is **not** a laboratory acceptance decision, does not decide whether a sample must be sent to a laboratory, and does not confirm substance identity. It is a field-evidence completeness/readiness check intended to reduce avoidable rework before handoff.
+
 ## Key capabilities
 
 - Live capture quality gate
