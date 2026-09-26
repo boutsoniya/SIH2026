@@ -38,3 +38,46 @@ test('invalid role is rejected', async () => {
   });
   assert.equal(response.status, 400);
 });
+
+
+test('FSL reconciliation is surfaced by evidence verification', async () => {
+  const record = {
+    test_id: 'FSL-READINESS-001',
+    record_hash: 'c'.repeat(64),
+    evidence_bag_id: 'BAG-FSL-001',
+    result: 'INCONCLUSIVE',
+  };
+  const syncResponse = await request('/api/evidence/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Role': 'OFFICER', 'X-Operator-Id': 'OFFICER-01' },
+    body: JSON.stringify(record),
+  });
+  assert.equal(syncResponse.status, 200);
+
+  const reconcileResponse = await request('/api/fsl/reconcile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Role': 'SUPERVISOR', 'X-Operator-Id': 'SUP-01' },
+    body: JSON.stringify({
+      evidence_bag_id: 'BAG-FSL-001',
+      laboratory_reference: 'LAB-DEMO-001',
+      status: 'CONFIRMED',
+      field_result: 'INCONCLUSIVE',
+    }),
+  });
+  assert.equal(reconcileResponse.status, 200);
+
+  const verifyResponse = await request('/api/evidence/verify/FSL-READINESS-001', {
+    headers: { 'X-Role': 'FSL', 'X-Operator-Id': 'FSL-01' },
+  });
+  const body = await verifyResponse.json();
+  assert.equal(verifyResponse.status, 200);
+  assert.equal(body.fsl_status, 'CONFIRMED');
+  assert.equal(body.laboratory_reference, 'LAB-DEMO-001');
+});
+
+test('officer cannot read FSL reconciliation details', async () => {
+  const response = await request('/api/fsl/reconcile/BAG-FSL-001', {
+    headers: { 'X-Role': 'OFFICER', 'X-Operator-Id': 'OFFICER-01' },
+  });
+  assert.equal(response.status, 403);
+});
