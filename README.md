@@ -2,11 +2,14 @@
 
 > SIH 2026 · Problem Statement SIH26231 · Field-ready prototype
 
-NARCOSCOPE is a field-first digital companion for colorimetric drug testing. It combines guided image capture, physical reference-card calibration, computer vision, presumptive interpretation, uncertainty handling, and tamper-evident evidence records into one auditable workflow.
+NARCOSCOPE is a field-first software companion for **existing colorimetric field-test kits**. It combines guided image capture, physical reference-card calibration, computer vision, presumptive interpretation, uncertainty handling, and tamper-evident evidence records into one auditable workflow. It does not introduce a new physical test kit or new hardware.
 
 ## Core workflow
 
-**Capture → Validate → Calibrate → Analyze → Explain → Seal → Verify → Sync → FSL Handoff**
+**Existing Field Kit → Capture → Validate → Calibrate → Analyze → Pre-Lab Readiness → Seal → Verify → Sync → FSL Handoff**
+
+### Scope clarification
+The physical colorimetric kit remains the underlying field test. The NARCOSCOPE prototype is the digital layer around that test: capture guidance, reference-card handling, analysis support, evidence integrity, and downstream verification.
 
 ## Why this architecture
 
@@ -216,11 +219,13 @@ SIH2026/
 
 ## Deployment
 
-The current Render deployment uses three services:
+The current Render deployment uses the following primary services:
 
-- **Field App:** https://sih2026-field-app.onrender.com
+- **Field App:** https://narcoscope-field.onrender.com
 - **API:** https://sih2026-api-qk7g.onrender.com
 - **Vision API:** https://sih2026-vision.onrender.com
+
+An additional older `sih2026-field-app` Render service exists in the workspace; the `narcoscope-field` service is the primary field-app URL.
 
 The field app is configured through:
 - `VITE_API_BASE_URL`
