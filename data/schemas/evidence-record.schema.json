@@ -33,6 +33,12 @@
         },
         "longitude": {
           "type": "number"
+        },
+        "accuracy_m": {
+          "type": [
+            "number",
+            "null"
+          ]
         }
       }
     },
@@ -75,14 +81,22 @@
         "null"
       ],
       "properties": {
-        "valid": { "type": "boolean" },
-        "source": { "type": "string" },
-        "coordinate_space": { "type": "string" },
+        "valid": {
+          "type": "boolean"
+        },
+        "source": {
+          "type": "string"
+        },
+        "coordinate_space": {
+          "type": "string"
+        },
         "card_corners": {
           "type": "array",
           "items": {
             "type": "array",
-            "items": { "type": "number" },
+            "items": {
+              "type": "number"
+            },
             "minItems": 2,
             "maxItems": 2
           },
@@ -91,46 +105,98 @@
         },
         "homography": {
           "type": "array",
-          "items": { "type": "array", "items": { "type": "number" } },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
           "minItems": 3,
           "maxItems": 3
         },
         "color_calibration": {
-          "type": ["object", "null"],
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "status": { "type": "string" },
-            "method": { "type": "string" },
-            "profile_id": { "type": "string" },
-            "patches_used": { "type": "integer" },
-            "rmse": { "type": "number" }
+            "status": {
+              "type": "string"
+            },
+            "method": {
+              "type": "string"
+            },
+            "profile_id": {
+              "type": "string"
+            },
+            "patches_used": {
+              "type": "integer"
+            },
+            "rmse": {
+              "type": "number"
+            }
           }
         },
         "normalized_size": {
           "type": "array",
-          "items": { "type": "integer" },
+          "items": {
+            "type": "integer"
+          },
           "minItems": 2,
           "maxItems": 2
         },
         "reaction_roi": {
-          "type": ["array", "null"],
-          "items": { "type": "number" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "number"
+          },
           "minItems": 4,
           "maxItems": 4
         }
       }
     },
     "calibration": {
-      "type": ["object", "null"]
+      "type": [
+        "object",
+        "null"
+      ]
     },
     "aruco": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "properties": {
-        "status": { "type": "string" },
-        "verified": { "type": "boolean" },
-        "dictionary": { "type": "string" },
-        "expected_ids": { "type": "array", "items": { "type": "integer" } },
-        "detected_ids": { "type": "array", "items": { "type": "integer" } },
-        "matched_ids": { "type": "array", "items": { "type": "integer" } }
+        "status": {
+          "type": "string"
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "dictionary": {
+          "type": "string"
+        },
+        "expected_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "detected_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "matched_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
       }
     },
     "pre_lab_readiness": {
@@ -231,7 +297,94 @@
         "object",
         "null"
       ]
+    },
+    "evidence_bag_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "test_kit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reagent_qr": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reagent": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "anti_spoof": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "color_distance": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "roi": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "number"
+      },
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "features": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "sync_status": {
+      "type": "string",
+      "enum": [
+        "QUEUED",
+        "SYNCING",
+        "SYNCED",
+        "FAILED"
+      ]
+    },
+    "integrity_status": {
+      "type": "string"
+    },
+    "analysis_status": {
+      "type": "string"
+    },
+    "fsl_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "laboratory_reference": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sync_receipt": {
+      "type": [
+        "object",
+        "null"
+      ]
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$comment": "Evidence records are field records; substance-level interpretation remains presumptive/inconclusive until kit-specific forensic validation."
 }
