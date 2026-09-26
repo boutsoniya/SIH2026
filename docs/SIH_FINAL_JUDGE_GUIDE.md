@@ -2,7 +2,9 @@
 
 ## 1. One-line pitch
 
-**NARCOSCOPE turns a field drug-test strip into a guided, auditable, verifiable digital evidence record — not just an image classification.**
+**NARCOSCOPE turns an existing colorimetric field-test result into a guided, auditable, verifiable digital evidence record — not just an image classification.**
+
+**Scope:** NARCOSCOPE is software that works alongside an existing field-test kit; it does not introduce a new physical test kit or new hardware.
 
 ## 2. Judge demo flow (3–5 minutes)
 
