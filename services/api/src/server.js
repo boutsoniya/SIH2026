@@ -116,6 +116,7 @@ app.get('/api/evidence/verify/:testId', authorize('verify'), (req, res) => {
   const record = getEvidence(req.params.testId);
   if (!record) return res.status(404).json({ error: 'evidence record not found' });
   const ledgerCheck = verifyLedger();
+  const fsl = record.evidence_bag_id ? labReconciliation.get(record.evidence_bag_id) : null;
   recordAudit(req, 'EVIDENCE_VERIFIED', { test_id: req.params.testId, ledger_valid: ledgerCheck.valid });
   res.json({
     verification_id: `VERIFY-${req.params.testId}`,
@@ -127,7 +128,8 @@ app.get('/api/evidence/verify/:testId', authorize('verify'), (req, res) => {
     result: record.result || 'INCONCLUSIVE',
     operator_id: record.operator_id || null,
     timestamp: record.timestamp || null,
-    fsl_status: record.fsl_reconciliation?.status || null,
+    fsl_status: fsl?.status || null,
+    laboratory_reference: fsl?.laboratory_reference || null,
     ledger: ledgerCheck,
   });
 });
@@ -160,7 +162,7 @@ app.post('/api/fsl/reconcile', authorize('reconcile'), (req, res) => {
   res.json(record);
 });
 
-app.get('/api/fsl/reconcile/:evidenceBagId', authorize('verify'), (req, res) => {
+app.get('/api/fsl/reconcile/:evidenceBagId', authorize('reconcile'), (req, res) => {
   const record = labReconciliation.get(req.params.evidenceBagId);
   if (!record) return res.status(404).json({ error: 'no laboratory reconciliation found' });
   res.json(record);
