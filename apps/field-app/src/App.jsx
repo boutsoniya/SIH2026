@@ -474,7 +474,21 @@ export default function App() {
   const syncNow = async () => {
     if (syncing || !storageReady) return;
     setSyncing(true);
-    try { await syncQueuedEvidence(); setLastSync(new Date()); await refreshQueue(); } finally { setSyncing(false); }
+    try {
+      const apiBase = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+      const result = await syncQueuedEvidence({ apiBase, role: 'OFFICER' });
+      setLastSync(new Date());
+      await refreshQueue();
+      if (result.failed?.length) {
+        setIntegrityMessage('Some evidence records need review after sync: ' + result.failed.map((item) => item.test_id + ' — ' + item.error).join('; '));
+      } else if (result.synced?.length) {
+        setIntegrityMessage('Evidence sync confirmed for ' + result.synced.length + ' record(s). Server ledger receipts were stored locally.');
+      }
+    } catch (error) {
+      setIntegrityMessage('Evidence sync error: ' + (error?.message || 'unknown error'));
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const next = () => { stopCamera(); setStep((value) => Math.min(value + 1, steps.length - 1)); };
