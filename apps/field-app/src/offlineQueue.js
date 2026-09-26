@@ -75,20 +75,56 @@ export async function queueCount() {
   return records.filter((item) => ['QUEUED', 'FAILED', 'SYNCING'].includes(item.sync_status)).length;
 }
 
-export async function syncQueuedEvidence() {
+export async function syncQueuedEvidence({ apiBase = '', role = 'OFFICER' } = {}) {
   const records = await listEvidence();
   const pending = records.filter((item) => ['QUEUED', 'FAILED'].includes(item.sync_status));
   const synced = [];
+  const failed = [];
 
   for (const record of pending) {
     await updateEvidenceStatus(record.test_id, 'SYNCING');
-    // Demo transport: no server endpoint exists yet. Keep this explicitly local.
-    await new Promise((resolve) => setTimeout(resolve, 180));
-    await updateEvidenceStatus(record.test_id, 'SYNCED');
-    synced.push(record.test_id);
+    try {
+      if (apiBase) {
+        const url = apiBase.replace(/\/$/, '') + '/api/evidence/sync';
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Role': role,
+            'X-Operator-Id': record.operator_id || 'ANONYMOUS',
+          },
+          body: JSON.stringify(record),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const error = new Error(data.error || 'Evidence sync failed (HTTP ' + response.status + ')');
+          error.status = response.status;
+          throw error;
+        }
+        const updated = {
+          ...record,
+          sync_status: 'SYNCED',
+          sync_receipt: data.receipt || record.sync_receipt || null,
+          integrity_status: 'SYNCED',
+          updated_at: new Date().toISOString(),
+        };
+        await saveEvidence(updated, updated.image_blob || null);
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 180));
+        await updateEvidenceStatus(record.test_id, 'SYNCED');
+      }
+      synced.push(record.test_id);
+    } catch (error) {
+      await updateEvidenceStatus(record.test_id, 'FAILED');
+      failed.push({
+        test_id: record.test_id,
+        status: error?.status || null,
+        error: error?.message || 'Evidence sync failed',
+      });
+    }
   }
 
-  return { synced, remaining: await queueCount() };
+  return { synced, failed, remaining: await queueCount() };
 }
 
 export function supportsOfflineStorage() {
