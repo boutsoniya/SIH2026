@@ -168,4 +168,4 @@ app.get('/api/fsl/reconcile/:evidenceBagId', authorize('reconcile'), (req, res) 
   res.json(record);
 });
 
-if (process.env.NODE_ENV !== 'test') app.listen(port, () => console.log(`NARCOSCOPE API listening on :${port}`));
+if (process.env.NODE_ENV !== 'test') app.listen(port, () => console.log(`NARCOKRITA API listening on :${port}`));
