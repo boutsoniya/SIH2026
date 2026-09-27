@@ -268,7 +268,7 @@ export default function App() {
         setCameraError('The camera frame could not be captured.');
         return;
       }
-      const captured = new File([blob], 'narcoscope-camera-capture.jpg', {
+      const captured = new File([blob], 'narcokrita-camera-capture.jpg', {
         type: 'image/jpeg',
         lastModified: Date.now(),
       });
