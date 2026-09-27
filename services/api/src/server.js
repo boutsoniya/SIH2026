@@ -68,7 +68,7 @@ function authorize(permission) {
 }
 
 app.get('/health', (_req, res) => res.json({
-  service: 'narcoscope-api',
+  service: 'narcokrita-api',
   status: 'ok',
   version: '0.4.0',
   security: { api_key_enabled: Boolean(API_AUTH_KEY), rbac: true },
