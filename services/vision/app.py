@@ -24,7 +24,7 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
-    return {"service": "narcoscope-vision", "status": "ok", "version": "0.3.0"}
+    return {"service": "narcokrita-vision", "status": "ok", "version": "0.3.0"}
 
 
 @app.post("/analyze")
