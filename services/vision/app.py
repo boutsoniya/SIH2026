@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from pipeline import analyze_image
 
-app = FastAPI(title="NARCOSCOPE Vision Service", version="0.3.0")
+app = FastAPI(title="NARCOKRITA Vision Service", version="0.3.0")
 
 cors_origins = [
     origin.strip()
