@@ -1,15 +1,15 @@
-# NARCOSCOPE — Digital Companion for Field Drug Testing
+# NARCOKRITA — Digital Companion for Field Drug Testing
 
 > SIH 2026 · Problem Statement SIH26231 · Field-ready prototype
 
-NARCOSCOPE is a field-first software companion for **existing colorimetric field-test kits**. It combines guided image capture, physical reference-card calibration, computer vision, presumptive interpretation, uncertainty handling, and tamper-evident evidence records into one auditable workflow. It does not introduce a new physical test kit or new hardware.
+NARCOKRITA is a field-first software companion for **existing colorimetric field-test kits**. It combines guided image capture, physical reference-card calibration, computer vision, presumptive interpretation, uncertainty handling, and tamper-evident evidence records into one auditable workflow. It does not introduce a new physical test kit or new hardware.
 
 ## Core workflow
 
 **Existing Field Kit → Capture → Validate → Calibrate → Analyze → Pre-Lab Readiness → Seal → Verify → Sync → FSL Handoff**
 
 ### Scope clarification
-The physical colorimetric kit remains the underlying field test. The NARCOSCOPE prototype is the digital layer around that test: capture guidance, reference-card handling, analysis support, evidence integrity, and downstream verification.
+The physical colorimetric kit remains the underlying field test. The NARCOKRITA prototype is the digital layer around that test: capture guidance, reference-card handling, analysis support, evidence integrity, and downstream verification.
 
 ## Why this architecture
 
@@ -30,7 +30,7 @@ The system is designed around the operational needs of field testing rather than
 
 ## Pre-lab evidence readiness (v16)
 
-NARCOSCOPE adds a **pre-lab evidence readiness** gate between field testing and downstream laboratory handoff. It checks whether the digital field evidence package is complete enough for the next documented step: capture quality, reference-card evidence, reaction ROI, reagent kit/lot/expiry metadata, and evidence-bag linkage.
+NARCOKRITA adds a **pre-lab evidence readiness** gate between field testing and downstream laboratory handoff. It checks whether the digital field evidence package is complete enough for the next documented step: capture quality, reference-card evidence, reaction ROI, reagent kit/lot/expiry metadata, and evidence-bag linkage.
 
 The readiness states are:
 - **READY** — configured capture/documentation checks passed.
@@ -169,7 +169,7 @@ CAPTURED → CALIBRATED → ANALYZED → SEALED → SYNCED
 - **Offline-first operation** — field records can be retained locally and synchronized later with conflict protection.
 - **Independent verification** — investigators/FSL personnel can verify integrity without reclassifying the substance.
 
-See [`docs/architecture/NARCOSCOPE_ARCHITECTURE.md`](docs/architecture/NARCOSCOPE_ARCHITECTURE.md) for the expanded architecture diagram and layer-by-layer design.
+See [`docs/architecture/NARCOKRITA_ARCHITECTURE.md`](docs/architecture/NARCOKRITA_ARCHITECTURE.md) for the expanded architecture diagram and layer-by-layer design.
 
 ## Prototype boundary
 
@@ -283,7 +283,7 @@ See:
 
 **One-line pitch:**
 
-> NARCOSCOPE turns a field drug-test strip into a guided, auditable, verifiable digital evidence record — not just an image classification.
+> NARCOKRITA turns a field drug-test strip into a guided, auditable, verifiable digital evidence record — not just an image classification.
 
 **Demo safety wording:**
 
