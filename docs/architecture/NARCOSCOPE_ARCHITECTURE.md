@@ -1,4 +1,4 @@
-# NARCOSCOPE Architecture — Judge Visual
+# NARCOKRITA Architecture — Judge Visual
 
 ```mermaid
 flowchart LR
@@ -82,7 +82,7 @@ flowchart LR
 
 ## Judge takeaway
 
-**NARCOSCOPE is not “camera → classifier.”**
+**NARCOKRITA is not “camera → classifier.”**
 
 It is:
 
