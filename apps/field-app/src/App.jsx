@@ -496,7 +496,7 @@ export default function App() {
   return (
     <main className="shell">
       <header className="topbar">
-        <div><span className="eyebrow">FIELD OPERATIONS</span><h1>NARCOSCOPE</h1></div>
+        <div><span className="eyebrow">FIELD OPERATIONS</span><h1>NARCOKRITA</h1></div>
         <div className="topbar-actions"><button className="queue-pill" onClick={() => setStep(3)}><strong>{queued}</strong> queued</button><button className="status" onClick={() => setOffline(!offline)}><span className={`dot ${offline ? 'offline' : 'online'}`} />{offline ? 'Offline queue' : 'Connected'}</button></div>
       </header>
 
@@ -504,7 +504,7 @@ export default function App() {
 
       <nav className="steps">{steps.map((label, index) => <button key={label} className={index === step ? 'active' : index < step ? 'done' : ''} onClick={() => setStep(index)}><span>{index + 1}</span>{label}</button>)}</nav>
 
-      {cameraOpen && <div className="camera-modal" role="dialog" aria-modal="true" aria-label="NARCOSCOPE camera capture">
+      {cameraOpen && <div className="camera-modal" role="dialog" aria-modal="true" aria-label="NARCOKRITA camera capture">
         <div className="camera-sheet">
           <div className="camera-sheet-head">
             <div>
@@ -576,11 +576,11 @@ export default function App() {
             <div className="demo-preview">
               <div className="demo-preview-head"><span className={offline ? "live-chip" : "live-chip live-chip-live"}>● {offline ? "OFFLINE DEMO" : "LIVE CAPTURE"}</span><span>{offline ? "REFERENCE CARD VIEW" : "CAPTURED IMAGE REVIEW"}</span></div>
               {offline ? <><div className="demo-card">
-                <div className="demo-card-brand">NARCOSCOPE</div>
+                <div className="demo-card-brand">NARCOKRITA</div>
                 <div className="demo-card-title">REFERENCE COLOUR CARD</div>
                 <div className="demo-swatches">{demoPalette.map(({ key, hex }) => <button type="button" key={key} className={demoCase === key ? 'demo-swatch selected' : 'demo-swatch'} style={{ background: hex }} onClick={() => { setDemoCase(key); setAnalysis(makeDemoAnalysis(key)); }} aria-label={`Select ${DEMO_CASES[key].display_name}`} />)}</div>
               </div>
-              <div className="demo-test-kit"><div className="kit-brand">NARCOSCOPE</div><div className="kit-window">{demoCase ? <span style={{ background: DEMO_CASES[demoCase].hex }} /> : <span className="unselected-dot" />}</div><div className="kit-well" /></div></> : <div className="captured-image-wrap"><img src={previewUrl} alt="Captured field test" /><div className="image-target reference-target">REFERENCE CARD</div><div className="image-target reaction-target">REACTION AREA</div></div>}
+              <div className="demo-test-kit"><div className="kit-brand">NARCOKRITA</div><div className="kit-window">{demoCase ? <span style={{ background: DEMO_CASES[demoCase].hex }} /> : <span className="unselected-dot" />}</div><div className="kit-well" /></div></> : <div className="captured-image-wrap"><img src={previewUrl} alt="Captured field test" /><div className="image-target reference-target">REFERENCE CARD</div><div className="image-target reaction-target">REACTION AREA</div></div>}
               <div className="demo-preview-foot">{offline ? <><span>Image quality: Good</span><span>Card: Detected</span><span>Colour match: {demoCase ? 'Selected' : 'Waiting'}</span></> : <><span>Image: {analysis?.quality?.passed ? 'Ready' : 'Review'}</span><span>Card: {analysis?.reference_card ? 'Detected' : 'Not detected'}</span><span>ROI: {analysis?.roi ? 'Detected' : 'Not detected'}</span></>}</div>
             </div>
           </div>
@@ -588,7 +588,7 @@ export default function App() {
             <span className="eyebrow">STEP 02</span>
             <div className="offline-badge">{offline ? "OFFLINE DEMO / SIMULATED CALIBRATION" : "LIVE IMAGE / SERVER ANALYSIS"}</div>
             <h3>{offline ? "Match the reaction colour" : "Review capture & calibration"}</h3>
-            <p className="muted">{offline ? "Match the reaction area to the reference colour card. The demo deliberately waits for your selection." : "NARCOSCOPE has already run the image quality gate and reference-card candidate detection. Review the capture quality before moving to the presumptive interpretation."}</p>
+            <p className="muted">{offline ? "Match the reaction area to the reference colour card. The demo deliberately waits for your selection." : "NARCOKRITA has already run the image quality gate and reference-card candidate detection. Review the capture quality before moving to the presumptive interpretation."}</p>
 
             {!offline && <div className="quality-summary">
               <div><span className="section-label">IMAGE</span><strong>{analysis?.quality?.width || '—'} × {analysis?.quality?.height || '—'}</strong><small>resolution</small></div>
@@ -635,7 +635,7 @@ export default function App() {
         {step === 2 && <div className="panel result">
           <div className="result-badge">PRESUMPTIVE FIELD RESULT</div>
           <h3>What the camera observed</h3>
-          <p className="muted">NARCOSCOPE separates the observed colour from the final substance decision. Colour alone is not treated as proof of a substance.</p>
+          <p className="muted">NARCOKRITA separates the observed colour from the final substance decision. Colour alone is not treated as proof of a substance.</p>
 
           <div className="observation-card">
             <div className="colour-swatch" style={{ background: analysis?.color_interpretation?.hex || '#9AA6B2' }} />
