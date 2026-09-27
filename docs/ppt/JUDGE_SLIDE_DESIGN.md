@@ -1,4 +1,4 @@
-# NARCOSCOPE — Slide Design System
+# NARCOKRITA — Slide Design System
 
 ## Visual direction
 - Dark navy / white base with restrained cyan accents.
