@@ -1,7 +1,7 @@
-# SIH 2026 — NARCOSCOPE PPT CONTENT
+# SIH 2026 — NARCOKRITA PPT CONTENT
 
 ## Slide 1 — Title
-**NARCOSCOPE**  
+**NARCOKRITA**  
 Digital Companion for Field Drug Testing  
 SIH 2026 · Problem Statement SIH26231
 
@@ -24,7 +24,7 @@ Field drug testing can be affected by:
 ---
 
 ## Slide 3 — Our Solution
-NARCOSCOPE is a field-first digital companion that:
+NARCOKRITA is a field-first digital companion that:
 - guides the officer during capture
 - validates image quality and reference-card geometry
 - calibrates color against a physical reference
@@ -44,7 +44,7 @@ Use this slide as the main visual workflow.
 ---
 
 ## Slide 5 — Field Capture Intelligence
-### Before analysis, NARCOSCOPE asks: “Is this evidence usable?”
+### Before analysis, NARCOKRITA asks: “Is this evidence usable?”
 - live brightness / contrast / sharpness / glare checks
 - actionable capture guidance
 - reference-card framing
@@ -72,7 +72,7 @@ The physical reference card provides a controlled visual contract.
 ---
 
 ## Slide 7 — Safe AI / Computer Vision
-NARCOSCOPE separates:
+NARCOKRITA separates:
 1. **Image usability**
 2. **Physical reference verification**
 3. **Color/reaction analysis**
@@ -104,7 +104,7 @@ Every sealed record can contain:
 ## Slide 9 — Offline-First Field Operation
 Field environments may have weak/no connectivity.
 
-NARCOSCOPE:
+NARCOKRITA:
 - stores evidence locally
 - maintains a hash-chained local ledger
 - allows later synchronization
@@ -230,7 +230,7 @@ Required validation program:
 ---
 
 ## Slide 16 — Closing
-**NARCOSCOPE**
+**NARCOKRITA**
 
 A field test should not end at “detected / not detected.”
 
@@ -242,7 +242,7 @@ It should produce a controlled, traceable and independently verifiable evidence 
 ## v16 precision update for the 6-slide deck
 
 ### Core narrative
-**Existing colorimetric field test → NARCOSCOPE → controlled digital evidence → pre-lab readiness → laboratory confirmation**
+**Existing colorimetric field test → NARCOKRITA → controlled digital evidence → pre-lab readiness → laboratory confirmation**
 
 ### Pre-lab readiness wording
 Use: **“Pre-lab evidence readiness”** or **“Field evidence handoff readiness.”**
