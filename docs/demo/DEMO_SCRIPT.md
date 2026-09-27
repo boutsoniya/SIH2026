@@ -1,8 +1,8 @@
-# NARCOSCOPE — 3–5 MINUTE JUDGE DEMO SCRIPT
+# NARCOKRITA — 3–5 MINUTE JUDGE DEMO SCRIPT
 
 ## Opening — 20 seconds
 **Say:**
-“Today we are demonstrating NARCOSCOPE, a field-first digital companion for drug-test workflows. The key idea is simple: we do not treat this as image classification alone. We control acquisition, calibration, uncertainty and the evidence trail.”
+“Today we are demonstrating NARCOKRITA, a field-first digital companion for drug-test workflows. The key idea is simple: we do not treat this as image classification alone. We control acquisition, calibration, uncertainty and the evidence trail.”
 
 ## 1. Field capture — 35 seconds
 Open the Field App.
@@ -64,7 +64,7 @@ Show FSL reconciliation.
 **Show:** the PRE-LAB READINESS panel after analysis.
 
 **Say:**
-“Before handoff, NARCOSCOPE checks whether the digital field evidence package is complete enough for the next documented step. This checks capture and documentation readiness; it does not decide laboratory acceptance or confirm the substance.”
+“Before handoff, NARCOKRITA checks whether the digital field evidence package is complete enough for the next documented step. This checks capture and documentation readiness; it does not decide laboratory acceptance or confirm the substance.”
 
 ## 8. Failure scenario — 25 seconds
 Choose one:
@@ -78,7 +78,7 @@ Choose one:
 
 ## Closing — 20 seconds
 **Say:**
-“NARCOSCOPE turns a field drug-test strip into a guided, auditable and verifiable digital evidence record — not just an image classification.”
+“NARCOKRITA turns a field drug-test strip into a guided, auditable and verifiable digital evidence record — not just an image classification.”
 
 Then state:
 “This demonstration validates the field workflow, evidence integrity and verification contracts. Forensic performance will be established through a separate laboratory-confirmed validation study.”
