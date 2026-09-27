@@ -2,9 +2,9 @@
 
 ## 1. One-line pitch
 
-**NARCOSCOPE turns an existing colorimetric field-test result into a guided, auditable, verifiable digital evidence record — not just an image classification.**
+**NARCOKRITA turns an existing colorimetric field-test result into a guided, auditable, verifiable digital evidence record — not just an image classification.**
 
-**Scope:** NARCOSCOPE is software that works alongside an existing field-test kit; it does not introduce a new physical test kit or new hardware.
+**Scope:** NARCOKRITA is software that works alongside an existing field-test kit; it does not introduce a new physical test kit or new hardware.
 
 ## 2. Judge demo flow (3–5 minutes)
 
@@ -55,7 +55,7 @@
 
 ## 5. Problem → solution mapping
 
-| Field problem | NARCOSCOPE response |
+| Field problem | NARCOKRITA response |
 |---|---|
 | Poor lighting / blur / glare | Live quality coach + backend quality gate |
 | Inconsistent camera framing | Reference Card Lock + geometry contract |
@@ -146,7 +146,7 @@ Never describe controlled demo success as measured forensic accuracy. Say:
 1. Title + one-line solution
 2. Field problem
 3. Existing workflow gaps
-4. NARCOSCOPE solution
+4. NARCOKRITA solution
 5. End-to-end workflow
 6. Architecture
 7. Core innovation
