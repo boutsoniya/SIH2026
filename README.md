@@ -225,7 +225,7 @@ The current Render deployment uses the following primary services:
 - **API:** https://sih2026-api-qk7g.onrender.com
 - **Vision API:** https://sih2026-vision.onrender.com
 
-An additional older `sih2026-field-app` Render service exists in the workspace; the `narcoscope-field` service is the primary field-app URL.
+An additional older `sih2026-field-app` Render service exists in the workspace; `narcoscope-field.onrender.com` remains the existing deployment URL for the Narcokrita field app.
 
 The field app is configured through:
 - `VITE_API_BASE_URL`
