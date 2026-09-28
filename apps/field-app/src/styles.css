@@ -311,3 +311,69 @@ h2{font-size:clamp(42px,6.2vw,72px);text-wrap:balance}
   .capture{padding:12px}.capture-frame{min-height:500px}.capture-status-strip{grid-template-columns:repeat(2,1fr);bottom:14px}
   .guide-card{left:12%;top:29%;width:210px}.guide-kit{right:10%;bottom:27%}
 }
+
+
+/* NARCOKRITA field-instrument visual system */
+:root{
+  --nk-ink:#102f2b;--nk-teal:#075e59;--nk-teal-2:#0b746c;
+  --nk-paper:#f5f6f3;--nk-panel:#ffffff;--nk-line:#c9d3cf;
+  --nk-muted:#657570;--nk-green:#1f7a59;--nk-amber:#a86d18;--nk-coral:#b84f46;
+}
+html,body{background:var(--nk-paper)!important;color:var(--nk-ink)!important}
+body{background-image:linear-gradient(rgba(7,94,89,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(7,94,89,.035) 1px,transparent 1px)!important;background-size:32px 32px!important}
+.shell{max-width:1240px;padding:20px 26px 52px}
+.topbar{padding:10px 0 16px;border-bottom:1px solid var(--nk-line)}
+.topbar h1{font-size:20px;color:var(--nk-ink);letter-spacing:.13em}
+.status,.queue-pill{background:#fff!important;border:1px solid var(--nk-line)!important;color:var(--nk-ink)!important;border-radius:5px!important;box-shadow:none!important}
+.dot.online{background:var(--nk-green)}
+.hero{padding:52px 0 28px;align-items:end}
+.hero h2{font-size:clamp(42px,6vw,72px);color:var(--nk-ink);max-width:900px}
+.eyebrow,.section-label{color:var(--nk-teal)!important;letter-spacing:.15em}
+.muted{color:var(--nk-muted)!important}
+.hero-card{border:1px solid var(--nk-line)!important;background:#fff!important;border-radius:6px!important;box-shadow:0 6px 18px rgba(16,47,43,.06)!important}
+.steps{gap:0;margin-bottom:12px}
+.steps button{border:0!important;border-top:2px solid #cfd8d4!important;background:transparent!important;border-radius:0!important;padding:12px 8px!important}
+.steps button.active{border-top-color:var(--nk-teal)!important;color:var(--nk-teal)!important;background:transparent!important}
+.steps button.done{color:var(--nk-green)!important}
+.steps button span{border-radius:3px!important;background:#e8eeeb!important}
+.panel{border:1px solid var(--nk-line)!important;background:#fff!important;border-radius:6px!important;box-shadow:0 8px 24px rgba(16,47,43,.055)!important}
+.capture{grid-template-columns:1.55fr .65fr;gap:28px}
+.capture-frame{min-height:500px!important;border:0!important;border-radius:3px!important;background:#092d2b!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)!important}
+.capture-frame:before{inset:9%!important;border:1px solid rgba(154,235,218,.3)!important;border-radius:0!important}
+.capture-frame:after{content:"";position:absolute;left:9%;right:9%;top:50%;height:1px;background:linear-gradient(90deg,transparent,#64e0c8,transparent);box-shadow:0 0 14px #64e0c8;opacity:.8}
+.guide-card,.guide-kit{border:1px solid rgba(164,238,220,.55)!important;background:rgba(4,42,39,.72)!important;color:#d9fff6!important;border-radius:2px!important;backdrop-filter:none!important}
+.guide-card{top:22%;left:17%}.guide-kit{bottom:22%;right:17%}
+.crosshair{color:#8be8d4;opacity:.9}
+.capture-controls{padding:18px 4px 18px 4px}
+.capture-controls h3{font-size:25px}
+.primary{background:var(--nk-teal)!important;color:#fff!important;border-radius:4px!important;box-shadow:none!important}
+.primary:hover{background:#064d49!important}
+.secondary{background:#fff!important;border:1px solid #b9c7c2!important;color:var(--nk-teal)!important;border-radius:4px!important}
+.upload,.history-toolbar input,.history-toolbar select,.field-input input{background:#fafcfb!important;border:1px solid var(--nk-line)!important;border-radius:4px!important}
+.capture-guidance,.help-box,.notice,.sync-panel{background:#f3f7f5!important;border:1px solid #cbd8d3!important;border-radius:4px!important}
+.capture-guidance{border-left:3px solid var(--nk-teal)}
+.camera-sheet{border-radius:5px!important}
+.camera-stage{border-radius:3px!important;background:#082d2a!important}
+.camera-overlay:before{border:1px solid rgba(255,255,255,.55)!important;border-radius:0!important}
+.reference-zone,.reaction-zone{border:1px solid #75e0c7!important;border-radius:2px!important;background:rgba(0,63,57,.45)!important}
+.reference-zone:before,.reaction-zone:before{content:"";position:absolute;width:12px;height:12px;border-left:2px solid #9cf0dc;border-top:2px solid #9cf0dc;left:-2px;top:-2px}
+.metrics{gap:0!important}
+.metrics div{border:1px solid var(--nk-line)!important;border-radius:0!important;background:#fff!important;padding:16px!important}
+.metrics div+div{border-left:0!important}
+.metrics strong{color:var(--nk-ink)!important}
+.metrics span{color:var(--nk-muted)!important}
+.observation-card,.interpretation-card,.professional-section,.prelab-card,.analysis-basis,.evidence-certificate{border-color:var(--nk-line)!important;border-radius:4px!important;background:#fff!important;box-shadow:none!important}
+.observation-card{border-left:4px solid var(--nk-teal)!important}
+.result-badge,.tag,.selection-status,.verified-pill{border-radius:3px!important}
+.result-badge{color:var(--nk-teal)!important;border-color:#8fb8af!important}
+.result-presumptive_positive{color:var(--nk-coral)!important;border-color:#d9aaa5!important}
+.result-presumptive_negative{color:var(--nk-green)!important;border-color:#9bc5b4!important}
+.result-inconclusive{color:#6d7774!important;border-color:#bfc9c5!important}
+.location-chip{border-radius:3px!important}
+.demo-preview{border-radius:3px!important;background:#092d2b!important}
+.demo-card,.demo-test-kit{border-radius:3px!important}
+@media(max-width:760px){
+ .shell{padding:16px 16px 40px}.hero{padding:36px 0 24px}.hero h2{font-size:43px}
+ .capture{display:block}.capture-frame{min-height:360px!important;margin-bottom:18px}
+ .metrics div+div{border-left:1px solid var(--nk-line)!important;border-top:0!important}
+}
