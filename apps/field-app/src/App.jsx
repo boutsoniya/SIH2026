@@ -91,6 +91,20 @@ const DEMO_CASES = {
   }
 };
 
+function normalizePreLabChecks(readiness) {
+  const checks = readiness?.checks;
+  if (Array.isArray(checks)) return checks;
+  if (checks && typeof checks === 'object') {
+    return Object.entries(checks).map(([key, value]) => ({
+      key,
+      label: key.replaceAll('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase()),
+      ok: value?.status === 'PASS',
+      message: value?.message || 'Review this readiness check.',
+    }));
+  }
+  return [];
+}
+
 function makeDemoAnalysis(key) {
   const demo = DEMO_CASES[key] || DEMO_CASES.inconclusive;
   return {
@@ -624,7 +638,11 @@ export default function App() {
             </div>}
 
             <div className="metrics"><div><strong>{analysis?.quality?.passed ? 'PASS' : 'REVIEW'}</strong><span>image quality</span></div><div><strong>{analysis?.reference_card ? 'FOUND' : 'REVIEW'}</strong><span>reference card</span></div><div><strong>{offline ? (demoCase ? 'READY' : 'WAITING') : (analysis?.roi ? 'FOUND' : 'REVIEW')}</strong><span>{offline ? 'colour match' : 'reaction ROI'}</span></div></div>
-            {analysis && <div className="prelab-card"><div className="prelab-head"><div><span className="section-label">PRE-LAB READINESS</span><strong>{(analysis.pre_lab_readiness || evaluatePreLabReadiness(analysis, { evidenceBagId })).status.replaceAll('_', ' ')}</strong></div><span className={(analysis.pre_lab_readiness || evaluatePreLabReadiness(analysis, { evidenceBagId })).ready_for_handoff ? 'prelab-status ready' : 'prelab-status review'}>{(analysis.pre_lab_readiness || evaluatePreLabReadiness(analysis, { evidenceBagId })).ready_for_handoff ? 'READY FOR HANDOFF' : 'REVIEW / RECAPTURE'}</span></div><p className="prelab-note">Checks whether the digital field evidence package is complete for the next handoff step. It does not decide laboratory acceptance or replace forensic confirmation.</p><div className="prelab-checks">{(analysis.pre_lab_readiness || evaluatePreLabReadiness(analysis, { evidenceBagId })).checks.map((item) => <div key={item.key} className={item.ok ? 'prelab-check ok' : 'prelab-check'}><span>{item.ok ? '✓' : '!'}</span><div><strong>{item.label}</strong><small>{item.message}</small></div></div>)}</div></div>}
+            {analysis && (() => {
+              const readiness = analysis.pre_lab_readiness || evaluatePreLabReadiness(analysis, { evidenceBagId });
+              const checks = normalizePreLabChecks(readiness);
+              return <div className="prelab-card"><div className="prelab-head"><div><span className="section-label">PRE-LAB READINESS</span><strong>{readiness.status.replaceAll('_', ' ')}</strong></div><span className={readiness.ready_for_handoff ? 'prelab-status ready' : 'prelab-status review'}>{readiness.ready_for_handoff ? 'READY FOR HANDOFF' : 'REVIEW / RECAPTURE'}</span></div><p className="prelab-note">Checks whether the digital field evidence package is complete for the next handoff step. It does not decide laboratory acceptance or replace forensic confirmation.</p><div className="prelab-checks">{checks.map((item) => <div key={item.key} className={item.ok ? 'prelab-check ok' : 'prelab-check'}><span>{item.ok ? '✓' : '!'}</span><div><strong>{item.label}</strong><small>{item.message}</small></div></div>)}</div></div>;
+            })()}
 
             {offline && <div className="notice">Offline demo uses synthetic colour cases to demonstrate the interaction. Colour associations are illustrative and kit-specific; they are not chemical identifications.</div>}
             {!offline && analysis?.quality?.passed && !analysis?.reference_card && <div className="notice">The image quality passed, but the reference card could not be detected. Recapture with the full reference card visible before relying on colour interpretation.</div>}
