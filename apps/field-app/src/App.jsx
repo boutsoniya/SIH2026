@@ -554,10 +554,30 @@ export default function App() {
 
       <section className="workspace">
         {step === 0 && <div className="panel capture">
-          <div className="capture-frame">
-            <div className="guide-card">REFERENCE CARD</div>
-            <div className="guide-kit">TEST KIT<br /><small>ALIGN INSIDE FRAME</small></div>
-            <div className="crosshair">+</div>
+          <div className="capture-frame capture-frame-enhanced">
+            <div className="capture-live-bar">
+              <span className="capture-live-dot" /> LIVE FIELD CAPTURE
+              <span className="capture-mode">GUIDED MODE</span>
+            </div>
+            <div className="guide-card">
+              <span className="guide-icon">▦</span>
+              <strong>REFERENCE CARD</strong>
+              <small>CALIBRATION TARGET</small>
+            </div>
+            <div className="guide-kit">
+              <span className="guide-icon">◉</span>
+              <strong>TEST KIT</strong>
+              <small>REACTION AREA</small>
+            </div>
+            <div className="capture-corner tl" /><div className="capture-corner tr" />
+            <div className="capture-corner bl" /><div className="capture-corner br" />
+            <div className="crosshair"><span>+</span><small>ALIGN</small></div>
+            <div className="capture-status-strip">
+              <span className={cardLock.cardDetected ? 'capture-status ok' : 'capture-status'}><b>{cardLock.cardDetected ? '✓' : '○'}</b> Card</span>
+              <span className={cardLock.reactionAreaOk ? 'capture-status ok' : 'capture-status'}><b>{cardLock.reactionAreaOk ? '✓' : '○'}</b> ROI</span>
+              <span className={captureCoach.checks.sharpness && captureCoach.checks.stability ? 'capture-status ok' : 'capture-status'}><b>{captureCoach.checks.sharpness && captureCoach.checks.stability ? '✓' : '○'}</b> Focus</span>
+              <span className={captureCoach.checks.brightness ? 'capture-status ok' : 'capture-status'}><b>{captureCoach.checks.brightness ? '✓' : '○'}</b> Light</span>
+            </div>
           </div>
           <div className="capture-controls">
             <div>
